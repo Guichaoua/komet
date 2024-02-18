@@ -6,7 +6,11 @@
 Komet - Kronecker Optimized Method for DTI Prediction
 =====================================================
 
+.. image:: ../../img/komet-logo-small.png
+   :alt: Komet Logo
+   :align: center
 
+   
 .. toctree::
    :hidden:
    :maxdepth: 1
