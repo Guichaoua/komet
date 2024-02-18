@@ -23,7 +23,7 @@ print(device)
 mytype = torch.float16  # to save memory (only on GPU)
 mytype = torch.float32
 
-def load_df(name):
+def load_df(name,dataset_dir="data"):
     """
     Loads a dataframe from a CSV file, cleans up SMILES strings that cannot be read by RDKit,
     and returns the cleaned dataframe.
@@ -31,21 +31,23 @@ def load_df(name):
     :param name: The name of the file (with extension) to be loaded. If the file is a zip archive,
                  it will be extracted first.
     :type name: str
+    :param dataset_dir: The directory where the dataset is located, by default "data".
+    :type dataset_dir: str, optional
     :return: The cleaned dataframe with SMILES strings that RDKit can read.
     :rtype: pd.DataFrame
     """
-    # If the data is in a zip file, unzip it
+    # if the data is in a zip file, unzip it
     if ".zip" in name:
-        with zipfile.ZipFile(f"data/{name}", 'r') as zip_ref:
-            zip_ref.extractall("data/")
+        with zipfile.ZipFile(f"{dataset_dir}/{name}", 'r') as zip_ref:
+            zip_ref.extractall(f"{dataset_dir}/")
         name = name[:-4]
-    df = pd.read_csv(f"data/{name}", index_col=0)
-    # Clean smiles
+    df = pd.read_csv(f"{dataset_dir}/{name}",index_col=0)
+    # clean smiles
     smiles = df[['SMILES']].drop_duplicates().values.flatten()
     l_smiles = [sm for sm in smiles if Chem.MolFromSmiles(sm) is None]
     print(f"number of smiles to clean: {len(l_smiles)}")
     df = df[~df['SMILES'].isin(l_smiles)]
-    print(f"{name} shape", df.shape)
+    print(f"{name} shape",df.shape)
     return df
 
 def add_indsmiles(df):
