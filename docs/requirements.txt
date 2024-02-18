@@ -1,9 +1,9 @@
-zipfile
+zipp
 pandas
 numpy
 rdkit
 torch
 scikit-learn
-pickle
+pickleshare
 matplotlib
 nbsphinx
