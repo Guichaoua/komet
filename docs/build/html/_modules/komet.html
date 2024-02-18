@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>komet &mdash; komet 1.0 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="shortcut icon" href="../_static/favicon.png"/>
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            komet
+              <img src="../_static/komet-logo-small.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../vignettes/komet_v2.html">Test of komet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../komet.html">komet module</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">komet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">komet</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for komet</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">zipfile</span>
+
+<span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">Chem</span>
+<span class="kn">from</span> <span class="nn">rdkit.Chem</span> <span class="kn">import</span> <span class="n">AllChem</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
+<span class="kn">from</span> <span class="nn">sklearn</span> <span class="kn">import</span> <span class="n">svm</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">import</span> <span class="nn">psutil</span>
+
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">average_precision_score</span><span class="p">,</span> <span class="n">roc_curve</span><span class="p">,</span> <span class="n">confusion_matrix</span><span class="p">,</span> <span class="n">auc</span>
+
+<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cuda:0&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+<span class="n">device_cpu</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+<span class="n">device_cpu</span> <span class="o">=</span> <span class="n">device</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+<span class="n">mytype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float16</span>  <span class="c1"># to save memory (only on GPU)</span>
+<span class="n">mytype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
+
+<div class="viewcode-block" id="load_df"><a class="viewcode-back" href="../komet.html#komet.load_df">[docs]</a><span class="k">def</span> <span class="nf">load_df</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Loads a dataframe from a CSV file, cleans up SMILES strings that cannot be read by RDKit,</span>
+<span class="sd">    and returns the cleaned dataframe.</span>
+
+<span class="sd">    :param name: The name of the file (with extension) to be loaded. If the file is a zip archive,</span>
+<span class="sd">                 it will be extracted first.</span>
+<span class="sd">    :type name: str</span>
+<span class="sd">    :return: The cleaned dataframe with SMILES strings that RDKit can read.</span>
+<span class="sd">    :rtype: pd.DataFrame</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># If the data is in a zip file, unzip it</span>
+    <span class="k">if</span> <span class="s2">&quot;.zip&quot;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;data/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">zip_ref</span><span class="p">:</span>
+            <span class="n">zip_ref</span><span class="o">.</span><span class="n">extractall</span><span class="p">(</span><span class="s2">&quot;data/&quot;</span><span class="p">)</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;data/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># Clean smiles</span>
+    <span class="n">smiles</span> <span class="o">=</span> <span class="n">df</span><span class="p">[[</span><span class="s1">&#39;SMILES&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+    <span class="n">l_smiles</span> <span class="o">=</span> <span class="p">[</span><span class="n">sm</span> <span class="k">for</span> <span class="n">sm</span> <span class="ow">in</span> <span class="n">smiles</span> <span class="k">if</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">sm</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;number of smiles to clean: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">l_smiles</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="o">~</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;SMILES&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">l_smiles</span><span class="p">)]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> shape&quot;</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+<div class="viewcode-block" id="add_indsmiles"><a class="viewcode-back" href="../komet.html#komet.add_indsmiles">[docs]</a><span class="k">def</span> <span class="nf">add_indsmiles</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Adds a column to the dataframe with indices for each unique SMILES string.</span>
+
+<span class="sd">    :param df: The dataframe to be processed.</span>
+<span class="sd">    :type df: pd.DataFrame</span>
+<span class="sd">    :return: A tuple containing the processed dataframe with an added column for SMILES indices</span>
+<span class="sd">             and the array of unique SMILES strings.</span>
+<span class="sd">    :rtype: tuple(pd.DataFrame, np.ndarray)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Index of the smiles in the dataset</span>
+    <span class="n">smiles</span> <span class="o">=</span> <span class="n">df</span><span class="p">[[</span><span class="s1">&#39;SMILES&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+    <span class="n">nM</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;number of different smiles (mol):&quot;</span><span class="p">,</span> <span class="n">nM</span><span class="p">)</span>
+    <span class="n">dict_ind2smiles</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="n">smiles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nM</span><span class="p">)}</span>
+    <span class="n">dict_smiles2ind</span> <span class="o">=</span> <span class="p">{</span><span class="n">smiles</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nM</span><span class="p">)}</span>
+    <span class="c1"># Add indsmiles in df</span>
+    <span class="n">df</span><span class="p">[</span><span class="s1">&#39;indsmiles&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;SMILES&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">dict_smiles2ind</span><span class="p">[</span><span class="n">x</span><span class="p">])</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;indsmiles&#39;</span><span class="p">])</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span><span class="p">,</span> <span class="n">smiles</span></div>
+
+<div class="viewcode-block" id="Morgan_FP"><a class="viewcode-back" href="../komet.html#komet.Morgan_FP">[docs]</a><span class="k">def</span> <span class="nf">Morgan_FP</span><span class="p">(</span><span class="n">list_smiles</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes the Morgan fingerprints for a list of SMILES strings.</span>
+
+<span class="sd">    :param list_smiles: A list of SMILES strings for which to compute the fingerprints.</span>
+<span class="sd">    :type list_smiles: list</span>
+<span class="sd">    :return: A tensor containing the Morgan fingerprints for the input SMILES strings.</span>
+<span class="sd">    :rtype: torch.Tensor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ms</span> <span class="o">=</span> <span class="p">[</span><span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">sm</span><span class="p">)</span> <span class="k">for</span> <span class="n">sm</span> <span class="ow">in</span> <span class="n">list_smiles</span><span class="p">]</span>
+    <span class="n">nM</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span>
+    <span class="n">MorganFP</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">nM</span><span class="p">,</span> <span class="mi">1024</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nM</span><span class="p">):</span>
+        <span class="c1"># Generate Morgan fingerprint of the molecule</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">GetMorganFingerprintAsBitVect</span><span class="p">(</span><span class="n">ms</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="mi">2</span><span class="p">,</span> <span class="n">nBits</span><span class="o">=</span><span class="mi">1024</span><span class="p">)</span>
+        <span class="c1"># Convert the fingerprint to a numpy array</span>
+        <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">1</span><span class="p">,))</span>
+        <span class="n">AllChem</span><span class="o">.</span><span class="n">DataStructs</span><span class="o">.</span><span class="n">ConvertToNumpyArray</span><span class="p">(</span><span class="n">fp</span><span class="p">,</span> <span class="n">arr</span><span class="p">)</span>
+        <span class="n">MorganFP</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">arr</span>
+    <span class="n">MorganFP</span> <span class="o">=</span> <span class="n">MorganFP</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">MorganFP</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">MorganFP</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">mytype</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">MorganFP</span></div>
+
+
+<div class="viewcode-block" id="Nystrom_X"><a class="viewcode-back" href="../komet.html#komet.Nystrom_X">[docs]</a><span class="k">def</span> <span class="nf">Nystrom_X</span><span class="p">(</span><span class="n">smiles_list</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">MorganFP</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">rM</span><span class="p">,</span> <span class="n">Mu</span><span class="p">,</span> <span class="n">epsi</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes the approximate features of the molecular kernel using the Nystrom approximation.</span>
+
+<span class="sd">    :param smiles_list: A list of SMILES strings for which to compute features.</span>
+<span class="sd">    :param S: Indices of the subset of samples used for the Nystrom approximation.</span>
+<span class="sd">    :param MorganFP: Precomputed Morgan Fingerprints for the dataset.</span>
+<span class="sd">    :param V: Eigenvectors of the kernel matrix.</span>
+<span class="sd">    :param rM: Rank of the approximation.</span>
+<span class="sd">    :param Mu: Eigenvalues of the kernel matrix.</span>
+<span class="sd">    :param epsi: Small regularization term added for numerical stability.</span>
+<span class="sd">    :return: Approximated feature matrix for the input SMILES list.</span>
+<span class="sd">    :rtype: torch.Tensor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Compute Morgan fingerprints for the input list of SMILES</span>
+    <span class="n">MorganFP_list</span> <span class="o">=</span> <span class="n">Morgan_FP</span><span class="p">(</span><span class="n">smiles_list</span><span class="p">)</span>
+
+    <span class="c1"># Compute the Nystrom approximation of the molecular kernel and the features</span>
+    <span class="n">Z_list</span> <span class="o">=</span> <span class="p">(</span><span class="n">MorganFP</span><span class="p">[</span><span class="n">S</span><span class="p">,</span> <span class="p">:]</span> <span class="o">@</span> <span class="n">MorganFP_list</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">MorganFP</span><span class="p">[</span><span class="n">S</span><span class="p">,</span> <span class="p">:])</span> <span class="o">@</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">MorganFP_list</span><span class="o">.</span><span class="n">T</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Z_list shape&quot;</span><span class="p">,</span> <span class="n">Z_list</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="n">X_list</span> <span class="o">=</span> <span class="n">Z_list</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">V</span><span class="p">[:,</span> <span class="p">:</span><span class="n">rM</span><span class="p">]</span> <span class="o">@</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mf">1.</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">epsi</span> <span class="o">+</span> <span class="n">Mu</span><span class="p">[:</span><span class="n">rM</span><span class="p">]))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;mol features list shape&quot;</span><span class="p">,</span> <span class="n">X_list</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">X_list</span></div>
+
+<div class="viewcode-block" id="add_indfasta"><a class="viewcode-back" href="../komet.html#komet.add_indfasta">[docs]</a><span class="k">def</span> <span class="nf">add_indfasta</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Adds an index column for each unique FASTA sequence in the dataframe.</span>
+
+<span class="sd">    :param df: Dataframe containing protein sequences.</span>
+<span class="sd">    :return: The updated dataframe with an &#39;indfasta&#39; column and the array of unique FASTA sequences.</span>
+<span class="sd">    :rtype: tuple[pd.DataFrame, np.ndarray]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Index of the protein in the dataset</span>
+    <span class="n">fasta</span> <span class="o">=</span> <span class="n">df</span><span class="p">[[</span><span class="s1">&#39;Target Sequence&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;number of different Fasta (protein):&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">fasta</span><span class="p">))</span>
+    <span class="c1"># Add ind_fasta in the dataframe</span>
+    <span class="n">df</span><span class="p">[</span><span class="s1">&#39;indfasta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;Target Sequence&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">fasta</span> <span class="o">==</span> <span class="n">x</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">df</span><span class="p">,</span> <span class="n">fasta</span></div>
+
+<div class="viewcode-block" id="load_datas"><a class="viewcode-back" href="../komet.html#komet.load_datas">[docs]</a><span class="k">def</span> <span class="nf">load_datas</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Loads interaction data including indices of molecule and protein pairs along with their labels.</span>
+
+<span class="sd">    :param df: Dataframe containing the interaction data.</span>
+<span class="sd">    :return: Tensors of molecule indices, protein indices, and interaction labels.</span>
+<span class="sd">    :rtype: tuple[torch.Tensor, torch.Tensor, torch.Tensor]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">array_df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[[</span><span class="s1">&#39;indfasta&#39;</span><span class="p">,</span> <span class="s1">&#39;indsmiles&#39;</span><span class="p">,</span> <span class="s1">&#39;Label&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span>
+    <span class="c1"># Extract indices for proteins, molecules, and labels</span>
+    <span class="n">J</span> <span class="o">=</span> <span class="n">array_df</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>  <span class="c1"># proteins</span>
+    <span class="n">I</span> <span class="o">=</span> <span class="n">array_df</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>  <span class="c1"># molecules</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">array_df</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span>  <span class="c1"># labels</span>
+    <span class="n">I</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">I</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">J</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">J</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="mf">.5</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">I</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">y</span></div>
+
+<div class="viewcode-block" id="SVM_bfgs"><a class="viewcode-back" href="../komet.html#komet.SVM_bfgs">[docs]</a><span class="k">def</span> <span class="nf">SVM_bfgs</span><span class="p">(</span><span class="n">X_cn</span><span class="p">,</span> <span class="n">Y_cn</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">lamb</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Trains an SVM model using the L-BFGS optimization algorithm to minimize the loss function.</span>
+
+<span class="sd">    :param X_cn: Feature matrix for compounds.</span>
+<span class="sd">    :param Y_cn: Feature matrix for targets.</span>
+<span class="sd">    :param y: Interaction labels.</span>
+<span class="sd">    :param I: Indices of molecules.</span>
+<span class="sd">    :param J: Indices of proteins.</span>
+<span class="sd">    :param lamb: Regularization parameter.</span>
+<span class="sd">    :return: Optimized weight and bias parameters for the SVM model.</span>
+<span class="sd">    :rtype: tuple[torch.Tensor, torch.Tensor]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">I</span><span class="p">)</span>
+    <span class="n">XI</span> <span class="o">=</span> <span class="n">X_cn</span><span class="p">[</span><span class="n">I</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">def</span> <span class="nf">U</span><span class="p">(</span><span class="n">w</span><span class="p">):</span> <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">Y_cn</span> <span class="o">@</span> <span class="n">w</span><span class="p">)[</span><span class="n">J</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">XI</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># FAST</span>
+
+    <span class="k">def</span> <span class="nf">Loss</span><span class="p">(</span><span class="n">u</span><span class="p">):</span> <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">n</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">u</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">0</span><span class="p">)))</span>  <span class="c1"># Loss function</span>
+    <span class="k">def</span> <span class="nf">g</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span> <span class="k">return</span> <span class="n">Loss</span><span class="p">(</span><span class="o">-</span><span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="n">U</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">+</span> <span class="n">b</span><span class="p">))</span> <span class="o">+</span> <span class="n">lamb</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">(</span><span class="n">w</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>  <span class="c1"># Function to minimize</span>
+
+    <span class="c1"># L-BFGS optimization</span>
+    <span class="k">def</span> <span class="nf">closure</span><span class="p">():</span>
+        <span class="n">lbfgs</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">objective</span> <span class="o">=</span> <span class="n">g</span><span class="p">(</span><span class="n">w_bfgs</span><span class="p">,</span> <span class="n">b_bfgs</span><span class="p">)</span>
+        <span class="n">objective</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">objective</span>
+
+    <span class="n">rM</span> <span class="o">=</span> <span class="n">X_cn</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">rP</span> <span class="o">=</span> <span class="n">Y_cn</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">w_bfgs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="n">rP</span><span class="p">,</span> <span class="n">rM</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">b_bfgs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">w_bfgs</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">b_bfgs</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">lbfgs</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">LBFGS</span><span class="p">([</span><span class="n">w_bfgs</span><span class="p">,</span> <span class="n">b_bfgs</span><span class="p">],</span> <span class="n">history_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">line_search_fn</span><span class="o">=</span><span class="s2">&quot;strong_wolfe&quot;</span><span class="p">)</span>
+    <span class="n">niter</span> <span class="o">=</span> <span class="mi">50</span>
+    <span class="n">history_lbfgs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">tic</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">niter</span><span class="p">):</span>
+        <span class="n">history_lbfgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">g</span><span class="p">(</span><span class="n">w_bfgs</span><span class="p">,</span> <span class="n">b_bfgs</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+        <span class="n">lbfgs</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">closure</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;L-BFGS time: </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">tic</span><span class="si">:</span><span class="s2">0.4f</span><span class="si">}</span><span class="s2"> seconds&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">w_bfgs</span><span class="p">,</span> <span class="n">b_bfgs</span></div>
+
+<div class="viewcode-block" id="compute_proba_Platt_Scalling"><a class="viewcode-back" href="../komet.html#komet.compute_proba_Platt_Scalling">[docs]</a><span class="k">def</span> <span class="nf">compute_proba_Platt_Scalling</span><span class="p">(</span><span class="n">w_bfgs</span><span class="p">,</span> <span class="n">X_cn</span><span class="p">,</span> <span class="n">Y_cn</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">J</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes probability estimates for interaction predictions using Platt scaling.</span>
+
+<span class="sd">    :param w_bfgs: Optimized weights from the SVM model.</span>
+<span class="sd">    :param X_cn: Feature matrix for compounds.</span>
+<span class="sd">    :param Y_cn: Feature matrix for targets.</span>
+<span class="sd">    :param y: Interaction labels.</span>
+<span class="sd">    :param I: Indices of molecules.</span>
+<span class="sd">    :param J: Indices of proteins.</span>
+<span class="sd">    :return: Optimized parameters &#39;s&#39; and &#39;t&#39; for Platt scaling.</span>
+<span class="sd">    :rtype: tuple[torch.Tensor, torch.Tensor]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">I</span><span class="p">)</span>
+    <span class="n">XI</span> <span class="o">=</span> <span class="n">X_cn</span><span class="p">[</span><span class="n">I</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">def</span> <span class="nf">U</span><span class="p">(</span><span class="n">w</span><span class="p">):</span> <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">Y_cn</span> <span class="o">@</span> <span class="n">w</span><span class="p">)[</span><span class="n">J</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">XI</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># FAST</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">U</span><span class="p">(</span><span class="n">w_bfgs</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>  <span class="c1"># Detach to stop backpropagation</span>
+
+    <span class="c1"># Logistic regression to find &#39;s&#39; and &#39;t&#39;</span>
+    <span class="k">def</span> <span class="nf">E</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span> <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">n</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="n">s</span> <span class="o">*</span> <span class="n">m</span> <span class="o">+</span> <span class="n">t</span><span class="p">))))</span>
+
+    <span class="c1"># L-BFGS optimization</span>
+    <span class="k">def</span> <span class="nf">closure</span><span class="p">():</span>
+        <span class="n">lbfgs</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+        <span class="n">objective</span> <span class="o">=</span> <span class="n">E</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+        <span class="n">objective</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">objective</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">s</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">t</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">lbfgs</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">LBFGS</span><span class="p">([</span><span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">],</span> <span class="n">history_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">line_search_fn</span><span class="o">=</span><span class="s2">&quot;strong_wolfe&quot;</span><span class="p">)</span>
+    <span class="n">niter</span> <span class="o">=</span> <span class="mi">20</span>
+    <span class="n">history_lbfgs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">niter</span><span class="p">):</span>
+        <span class="n">history_lbfgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">E</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+        <span class="n">lbfgs</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">closure</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">s</span><span class="p">,</span> <span class="n">t</span></div>
+
+
+<div class="viewcode-block" id="compute_proba"><a class="viewcode-back" href="../komet.html#komet.compute_proba">[docs]</a><span class="k">def</span> <span class="nf">compute_proba</span><span class="p">(</span><span class="n">w_bfgs</span><span class="p">,</span> <span class="n">b_bfgs</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">X_cn</span><span class="p">,</span> <span class="n">Y_cn</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">J</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes probabilities using the trained weights and Platt scaling parameters.</span>
+
+<span class="sd">    :param w_bfgs: Optimized weights from the SVM model for compounds.</span>
+<span class="sd">    :param b_bfgs: Optimized bias from the SVM model.</span>
+<span class="sd">    :param s: Optimized scaling parameter from Platt scaling.</span>
+<span class="sd">    :param t: Optimized offset parameter from Platt scaling.</span>
+<span class="sd">    :param X_cn: Feature matrix for compounds.</span>
+<span class="sd">    :param Y_cn: Feature matrix for targets.</span>
+<span class="sd">    :param I: Indices of molecules.</span>
+<span class="sd">    :param J: Indices of proteins.</span>
+<span class="sd">    :return: A tuple containing the margin values, predicted labels, and predicted probabilities.</span>
+<span class="sd">    :rtype: tuple[torch.Tensor, torch.Tensor, torch.Tensor]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="n">Y_cn</span> <span class="o">@</span> <span class="n">w_bfgs</span><span class="p">)[</span><span class="n">J</span><span class="p">,</span> <span class="p">:]</span> <span class="o">*</span> <span class="n">X_cn</span><span class="p">[</span><span class="n">I</span><span class="p">,</span> <span class="p">:],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Margin computation</span>
+    <span class="n">y_pred</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">m</span> <span class="o">+</span> <span class="n">b_bfgs</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>  <span class="c1"># Label prediction</span>
+    <span class="n">proba_pred</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">s</span> <span class="o">*</span> <span class="n">m</span> <span class="o">+</span> <span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>  <span class="c1"># Probability prediction</span>
+    <span class="k">return</span> <span class="n">m</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">proba_pred</span></div>
+
+<div class="viewcode-block" id="results"><a class="viewcode-back" href="../komet.html#komet.results">[docs]</a><span class="k">def</span> <span class="nf">results</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y_pred</span><span class="p">,</span> <span class="n">proba_pred</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes and returns various performance metrics of the model including accuracy, AUC, average precision,</span>
+<span class="sd">    optimal threshold for classification, accuracy at the best threshold, confusion matrix, and false positive rate.</span>
+
+<span class="sd">    :param y: True labels.</span>
+<span class="sd">    :param y_pred: Predicted labels before applying Platt scaling.</span>
+<span class="sd">    :param proba_pred: Predicted probabilities after applying Platt scaling.</span>
+<span class="sd">    :return: A tuple containing accuracy before Platt scaling, AUC, average precision, optimal threshold,</span>
+<span class="sd">             accuracy at optimal threshold, confusion matrix, and false positive rate at the optimal threshold.</span>
+<span class="sd">    :rtype: tuple[float, float, float, float, float, np.ndarray, float]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Accuracy before Platt scaling</span>
+    <span class="n">acc1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y</span> <span class="o">==</span> <span class="n">y_pred</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+    <span class="c1"># AUC computation</span>
+    <span class="n">fpr</span><span class="p">,</span> <span class="n">tpr</span><span class="p">,</span> <span class="n">thresholds</span> <span class="o">=</span> <span class="n">roc_curve</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">proba_pred</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+    <span class="n">au_Roc</span> <span class="o">=</span> <span class="n">auc</span><span class="p">(</span><span class="n">fpr</span><span class="p">,</span> <span class="n">tpr</span><span class="p">)</span>
+
+    <span class="c1"># Average precision computation</span>
+    <span class="n">au_PR</span> <span class="o">=</span> <span class="n">average_precision_score</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">proba_pred</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+
+    <span class="c1"># Optimal threshold for classification</span>
+    <span class="n">precision</span> <span class="o">=</span> <span class="n">tpr</span> <span class="o">/</span> <span class="p">(</span><span class="n">tpr</span> <span class="o">+</span> <span class="n">fpr</span> <span class="o">+</span> <span class="mf">0.00001</span><span class="p">)</span>
+    <span class="n">f1</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">precision</span> <span class="o">*</span> <span class="n">tpr</span> <span class="o">/</span> <span class="p">(</span><span class="n">tpr</span> <span class="o">+</span> <span class="n">precision</span> <span class="o">+</span> <span class="mf">0.00001</span><span class="p">)</span>
+    <span class="n">thred_optim</span> <span class="o">=</span> <span class="n">thresholds</span><span class="p">[</span><span class="mi">5</span><span class="p">:][</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">f1</span><span class="p">[</span><span class="mi">5</span><span class="p">:])]</span>
+
+    <span class="c1"># Accuracy at the optimal threshold</span>
+    <span class="n">y_pred_s</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span> <span class="k">if</span> <span class="n">i</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="n">proba_pred</span> <span class="o">&gt;=</span> <span class="n">thred_optim</span><span class="p">)]</span>
+    <span class="n">acc_best</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">y</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">y_pred_s</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">device</span><span class="p">))</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+    <span class="c1"># Confusion matrix computation</span>
+    <span class="n">cm</span> <span class="o">=</span> <span class="n">confusion_matrix</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">y_pred_s</span><span class="p">)</span>
+
+    <span class="c1"># False positive rate at the optimal threshold</span>
+    <span class="n">FP</span> <span class="o">=</span> <span class="n">cm</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">cm</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">cm</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">acc1</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">au_Roc</span><span class="p">,</span> <span class="n">au_PR</span><span class="p">,</span> <span class="n">thred_optim</span><span class="p">,</span> <span class="n">acc_best</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">cm</span><span class="p">,</span> <span class="n">FP</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Gwenn Guichaoua.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

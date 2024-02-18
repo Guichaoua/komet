@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>komet module &mdash; komet 1.0 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="shortcut icon" href="_static/favicon.png"/>
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Test of komet" href="vignettes/komet_v2.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            komet
+              <img src="_static/komet-logo-small.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="vignettes/komet_v2.html">Test of komet</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">komet module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#komet.Morgan_FP"><code class="docutils literal notranslate"><span class="pre">Morgan_FP()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#komet.Nystrom_X"><code class="docutils literal notranslate"><span class="pre">Nystrom_X()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#komet.SVM_bfgs"><code class="docutils literal notranslate"><span class="pre">SVM_bfgs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#komet.add_indfasta"><code class="docutils literal notranslate"><span class="pre">add_indfasta()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#komet.add_indsmiles"><code class="docutils literal notranslate"><span class="pre">add_indsmiles()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#komet.compute_proba"><code class="docutils literal notranslate"><span class="pre">compute_proba()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#komet.compute_proba_Platt_Scalling"><code class="docutils literal notranslate"><span class="pre">compute_proba_Platt_Scalling()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#komet.load_datas"><code class="docutils literal notranslate"><span class="pre">load_datas()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#komet.load_df"><code class="docutils literal notranslate"><span class="pre">load_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#komet.results"><code class="docutils literal notranslate"><span class="pre">results()</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">komet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">komet module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/komet.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-komet">
+<span id="komet-module"></span><h1>komet module<a class="headerlink" href="#module-komet" title="Permalink to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="komet.Morgan_FP">
+<span class="sig-prename descclassname"><span class="pre">komet.</span></span><span class="sig-name descname"><span class="pre">Morgan_FP</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_smiles</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/komet.html#Morgan_FP"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#komet.Morgan_FP" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the Morgan fingerprints for a list of SMILES strings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>list_smiles</strong> (<em>list</em>) – A list of SMILES strings for which to compute the fingerprints.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tensor containing the Morgan fingerprints for the input SMILES strings.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="komet.Nystrom_X">
+<span class="sig-prename descclassname"><span class="pre">komet.</span></span><span class="sig-name descname"><span class="pre">Nystrom_X</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">smiles_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">S</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MorganFP</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epsi</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/komet.html#Nystrom_X"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#komet.Nystrom_X" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the approximate features of the molecular kernel using the Nystrom approximation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>smiles_list</strong> – A list of SMILES strings for which to compute features.</p></li>
+<li><p><strong>S</strong> – Indices of the subset of samples used for the Nystrom approximation.</p></li>
+<li><p><strong>MorganFP</strong> – Precomputed Morgan Fingerprints for the dataset.</p></li>
+<li><p><strong>V</strong> – Eigenvectors of the kernel matrix.</p></li>
+<li><p><strong>rM</strong> – Rank of the approximation.</p></li>
+<li><p><strong>Mu</strong> – Eigenvalues of the kernel matrix.</p></li>
+<li><p><strong>epsi</strong> – Small regularization term added for numerical stability.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Approximated feature matrix for the input SMILES list.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="komet.SVM_bfgs">
+<span class="sig-prename descclassname"><span class="pre">komet.</span></span><span class="sig-name descname"><span class="pre">SVM_bfgs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">X_cn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y_cn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">J</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lamb</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/komet.html#SVM_bfgs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#komet.SVM_bfgs" title="Permalink to this definition"></a></dt>
+<dd><p>Trains an SVM model using the L-BFGS optimization algorithm to minimize the loss function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>X_cn</strong> – Feature matrix for compounds.</p></li>
+<li><p><strong>Y_cn</strong> – Feature matrix for targets.</p></li>
+<li><p><strong>y</strong> – Interaction labels.</p></li>
+<li><p><strong>I</strong> – Indices of molecules.</p></li>
+<li><p><strong>J</strong> – Indices of proteins.</p></li>
+<li><p><strong>lamb</strong> – Regularization parameter.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Optimized weight and bias parameters for the SVM model.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[torch.Tensor, torch.Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="komet.add_indfasta">
+<span class="sig-prename descclassname"><span class="pre">komet.</span></span><span class="sig-name descname"><span class="pre">add_indfasta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/komet.html#add_indfasta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#komet.add_indfasta" title="Permalink to this definition"></a></dt>
+<dd><p>Adds an index column for each unique FASTA sequence in the dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> – Dataframe containing protein sequences.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The updated dataframe with an ‘indfasta’ column and the array of unique FASTA sequences.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[pd.DataFrame, np.ndarray]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="komet.add_indsmiles">
+<span class="sig-prename descclassname"><span class="pre">komet.</span></span><span class="sig-name descname"><span class="pre">add_indsmiles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/komet.html#add_indsmiles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#komet.add_indsmiles" title="Permalink to this definition"></a></dt>
+<dd><p>Adds a column to the dataframe with indices for each unique SMILES string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pd.DataFrame</em>) – The dataframe to be processed.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple containing the processed dataframe with an added column for SMILES indices
+and the array of unique SMILES strings.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple(pd.DataFrame, np.ndarray)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="komet.compute_proba">
+<span class="sig-prename descclassname"><span class="pre">komet.</span></span><span class="sig-name descname"><span class="pre">compute_proba</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_bfgs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b_bfgs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">s</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_cn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y_cn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">J</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/komet.html#compute_proba"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#komet.compute_proba" title="Permalink to this definition"></a></dt>
+<dd><p>Computes probabilities using the trained weights and Platt scaling parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w_bfgs</strong> – Optimized weights from the SVM model for compounds.</p></li>
+<li><p><strong>b_bfgs</strong> – Optimized bias from the SVM model.</p></li>
+<li><p><strong>s</strong> – Optimized scaling parameter from Platt scaling.</p></li>
+<li><p><strong>t</strong> – Optimized offset parameter from Platt scaling.</p></li>
+<li><p><strong>X_cn</strong> – Feature matrix for compounds.</p></li>
+<li><p><strong>Y_cn</strong> – Feature matrix for targets.</p></li>
+<li><p><strong>I</strong> – Indices of molecules.</p></li>
+<li><p><strong>J</strong> – Indices of proteins.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple containing the margin values, predicted labels, and predicted probabilities.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[torch.Tensor, torch.Tensor, torch.Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="komet.compute_proba_Platt_Scalling">
+<span class="sig-prename descclassname"><span class="pre">komet.</span></span><span class="sig-name descname"><span class="pre">compute_proba_Platt_Scalling</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w_bfgs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">X_cn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Y_cn</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">J</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/komet.html#compute_proba_Platt_Scalling"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#komet.compute_proba_Platt_Scalling" title="Permalink to this definition"></a></dt>
+<dd><p>Computes probability estimates for interaction predictions using Platt scaling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w_bfgs</strong> – Optimized weights from the SVM model.</p></li>
+<li><p><strong>X_cn</strong> – Feature matrix for compounds.</p></li>
+<li><p><strong>Y_cn</strong> – Feature matrix for targets.</p></li>
+<li><p><strong>y</strong> – Interaction labels.</p></li>
+<li><p><strong>I</strong> – Indices of molecules.</p></li>
+<li><p><strong>J</strong> – Indices of proteins.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Optimized parameters ‘s’ and ‘t’ for Platt scaling.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[torch.Tensor, torch.Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="komet.load_datas">
+<span class="sig-prename descclassname"><span class="pre">komet.</span></span><span class="sig-name descname"><span class="pre">load_datas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/komet.html#load_datas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#komet.load_datas" title="Permalink to this definition"></a></dt>
+<dd><p>Loads interaction data including indices of molecule and protein pairs along with their labels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> – Dataframe containing the interaction data.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tensors of molecule indices, protein indices, and interaction labels.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[torch.Tensor, torch.Tensor, torch.Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="komet.load_df">
+<span class="sig-prename descclassname"><span class="pre">komet.</span></span><span class="sig-name descname"><span class="pre">load_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/komet.html#load_df"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#komet.load_df" title="Permalink to this definition"></a></dt>
+<dd><p>Loads a dataframe from a CSV file, cleans up SMILES strings that cannot be read by RDKit,
+and returns the cleaned dataframe.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>name</strong> (<em>str</em>) – The name of the file (with extension) to be loaded. If the file is a zip archive,
+it will be extracted first.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The cleaned dataframe with SMILES strings that RDKit can read.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="komet.results">
+<span class="sig-prename descclassname"><span class="pre">komet.</span></span><span class="sig-name descname"><span class="pre">results</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">proba_pred</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/komet.html#results"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#komet.results" title="Permalink to this definition"></a></dt>
+<dd><p>Computes and returns various performance metrics of the model including accuracy, AUC, average precision,
+optimal threshold for classification, accuracy at the best threshold, confusion matrix, and false positive rate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> – True labels.</p></li>
+<li><p><strong>y_pred</strong> – Predicted labels before applying Platt scaling.</p></li>
+<li><p><strong>proba_pred</strong> – Predicted probabilities after applying Platt scaling.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple containing accuracy before Platt scaling, AUC, average precision, optimal threshold,
+accuracy at optimal threshold, confusion matrix, and false positive rate at the optimal threshold.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[float, float, float, float, float, np.ndarray, float]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="vignettes/komet_v2.html" class="btn btn-neutral float-left" title="Test of komet" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Gwenn Guichaoua.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

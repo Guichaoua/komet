@@ -1,4 +1,6 @@
-# Komet -- Kronecker Optimized Method for DTI Predicton 
+# Komet - Kronecker Optimized Method for DTI Prediction
+
+![Komet Logo](img/komet-logo-small.png)
 
 ## Overview
 
