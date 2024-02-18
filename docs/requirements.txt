@@ -7,4 +7,5 @@ scikit-learn
 pickleshare
 matplotlib
 nbsphinx
+psutil
 sphinx-rtd-theme

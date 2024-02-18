@@ -10,6 +10,7 @@ Komet - Kronecker Optimized Method for DTI Prediction
    :alt: Komet Logo
    :align: center
 
+   
 .. toctree::
    :hidden:
    :maxdepth: 1
@@ -61,7 +62,7 @@ The library requires the following Python packages:
 - rdkit
 - torch
 - scikit-learn
-- zipfile
+- zipp
 - pickle
 
 Installation
