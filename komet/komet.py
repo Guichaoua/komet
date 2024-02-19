@@ -64,7 +64,6 @@ def add_indsmiles(df):
     smiles = df[['SMILES']].drop_duplicates().values.flatten()
     nM = len(smiles)
     print("number of different smiles (mol):", nM)
-    dict_ind2smiles = {i: smiles[i] for i in range(nM)}
     dict_smiles2ind = {smiles[i]: i for i in range(nM)}
     # Add indsmiles in df
     df['indsmiles'] = df['SMILES'].apply(lambda x: dict_smiles2ind[x])
@@ -95,6 +94,40 @@ def Morgan_FP(list_smiles):
     MorganFP = torch.tensor(MorganFP, dtype=mytype).to(device)
     return MorganFP
 
+def Nystrom_X_cn(mM,rM,nM,MorganFP):
+    """
+    Compute the Nystrom approximation of the centered normalized feature matrix.
+
+    :param mM: Number of molecule landmarks
+    :type mM: int
+    :param rM: Number of dimensions to keep after SVD for molecule features
+    :type rM: int
+    :param nM: Total number of molecules.
+    :type nM: int
+    :param MorganFP: Matrix of Morgan fingerprints of shape (nM, fingerprint_length).
+    :type MorganFP: numpy.ndarray
+    :return: The centered normalized feature matrix.
+    :rtype: torch.Tensor
+    :notes: This function computes the Nystrom approximation of the feature matrix using the given
+            Morgan fingerprints. It first selects a random subset S of size mM from the total
+            nM molecules. It then computes the kernel matrix K using the selected subset.
+            The approximate feature matrix is computed using Singular Value Decomposition (SVD)
+            on K. Finally, the features are normalized by centering and dividing by their L2 norm.
+
+            The input MorganFP should be a numpy array with shape (nM, fingerprint_length).
+    """
+    S = np.random.permutation(nM)[:mM]
+    S = np.sort(S)
+    K = ( MorganFP[S,:] @ MorganFP.T ) / ( 1024 - (1-MorganFP[S,:]) @ (1-MorganFP.T) )
+    print("mol kernel shape",K.shape)
+    # compute the approximate mol features with SVD
+    U, Lambda, VT = torch.svd(K[:,S])
+    epsi = 1e-8  # be careful when we divide by Lambda near 0
+    X = K.T @ U[:,:rM] @ torch.diag(1./torch.sqrt(epsi + Lambda[:rM]))
+    # nomramlisation of the features
+    X_c = X - X.mean(axis = 0)
+    X_cn = X_c / torch.norm(X_c,dim = 1)[:,None]
+    return X_cn
 
 def Nystrom_X(smiles_list, S, MorganFP, V, rM, Mu, epsi):
     """
