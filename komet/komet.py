@@ -187,7 +187,7 @@ def load_datas(df):
     y = torch.tensor(np.sign(y - .5)).to(device)
     return I, J, y
 
-def SVM_bfgs(X_cn, Y_cn, y, I, J, lamb):
+def SVM_bfgs(X_cn, Y_cn, y, I, J, lamb,niter = 50):
     """
     Trains an SVM model using the L-BFGS optimization algorithm to minimize the loss function.
 
@@ -197,8 +197,9 @@ def SVM_bfgs(X_cn, Y_cn, y, I, J, lamb):
     :param I: Indices of molecules.
     :param J: Indices of proteins.
     :param lamb: Regularization parameter.
-    :return: Optimized weight and bias parameters for the SVM model.
-    :rtype: tuple[torch.Tensor, torch.Tensor]
+    :param niter: Number of iterations for the L-BFGS optimization algorithm.
+    :return: Optimized weight and bias parameters for the SVM model, and the history of the loss function.
+    :rtype: tuple[torch.Tensor, torch.Tensor, list[float]]
     """
     n = len(I)
     XI = X_cn[I, :]
@@ -223,16 +224,16 @@ def SVM_bfgs(X_cn, Y_cn, y, I, J, lamb):
     b_bfgs.requires_grad = True
 
     lbfgs = optim.LBFGS([w_bfgs, b_bfgs], history_size=10, max_iter=4, line_search_fn="strong_wolfe")
-    niter = 50
+    
     history_lbfgs = []
     tic = time.perf_counter()
     for i in range(niter):
         history_lbfgs.append(g(w_bfgs, b_bfgs).item())
         lbfgs.step(closure)
     print(f"L-BFGS time: {time.perf_counter() - tic:0.4f} seconds")
-    return w_bfgs, b_bfgs
+    return w_bfgs, b_bfgs,history_lbfgs
 
-def compute_proba_Platt_Scalling(w_bfgs, X_cn, Y_cn, y, I, J):
+def compute_proba_Platt_Scalling(w_bfgs, X_cn, Y_cn, y, I, J,niter = 20):
     """
     Computes probability estimates for interaction predictions using Platt scaling.
 
@@ -242,8 +243,9 @@ def compute_proba_Platt_Scalling(w_bfgs, X_cn, Y_cn, y, I, J):
     :param y: Interaction labels.
     :param I: Indices of molecules.
     :param J: Indices of proteins.
-    :return: Optimized parameters 's' and 't' for Platt scaling.
-    :rtype: tuple[torch.Tensor, torch.Tensor]
+    :param niter: Number of iterations for the L-BFGS optimization algorithm.
+    :return: Optimized parameters 's' and 't' for Platt scaling, and the history of the loss function.
+    :rtype: tuple[torch.Tensor, torch.Tensor,list[float]]
     """
     n = len(I)
     XI = X_cn[I, :]
@@ -264,13 +266,13 @@ def compute_proba_Platt_Scalling(w_bfgs, X_cn, Y_cn, y, I, J):
     s.requires_grad = True
     t.requires_grad = True
     lbfgs = optim.LBFGS([s, t], history_size=10, max_iter=4, line_search_fn="strong_wolfe")
-    niter = 20
+
     history_lbfgs = []
     for i in range(niter):
         history_lbfgs.append(E(s, t).item())
         lbfgs.step(closure)
 
-    return s, t
+    return s, t,history_lbfgs
 
 
 def compute_proba(w_bfgs, b_bfgs, s, t, X_cn, Y_cn, I, J):
