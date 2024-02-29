@@ -38,7 +38,7 @@ Citation
 
 If you use this library, please be sure to cite::
 
-   @article{YourLastName2024Molecular,
+   @article{Komet2024,
      title={Advancing Drug-Target Interactions Prediction: Leveraging a Large-Scale Dataset with a Rapid and Robust Chemogenomic Algorithm},
      author={View ORCID ProfileGwenn Guichaoua, Philippe Pinel, Brice Hoffmann, Chloé-Agathe Azencott, Véronique Stoven},
      journal={BioRxiv},
