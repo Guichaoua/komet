@@ -10,3 +10,4 @@ nbsphinx
 psutil
 sphinx-rtd-theme
 argparse
+ipykernel
