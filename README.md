@@ -11,19 +11,14 @@ This library is designed for computational biology and cheminformatics, focusing
 If you use this library, please be sure to cite:
 
 ```bibtex
-@article{YourLastName2024Molecular,
-  title={Molecular Interaction Library: A Tool for Predicting and Analyzing Molecular Interactions},
-  author={YourLastName, YourFirstName and CoAuthorLastName, CoAuthorFirstName},
-  journal={Journal of Computational Biology and Cheminformatics},
-  volume={XX},
-  number={XX},
-  pages={XX-XX},
-  year={2024},
-  publisher={PublisherName},
-  doi={10.1234/jcbci.2024.56789},
-  url={http://www.example.com/library-article},
-  abstract={This article introduces the Molecular Interaction Library, a comprehensive Python toolkit designed for the prediction and analysis of molecular interactions in computational biology and cheminformatics. Covering functionalities from data loading and preprocessing to molecular feature computation, model training, prediction, and evaluation, this library aims to facilitate research and development in drug discovery and molecular docking simulations. We detail the implementation of key features, such as Morgan fingerprint computation, Nystrom approximation for kernel methods, and SVM-based predictive modeling with L-BFGS optimization, alongside a case study demonstrating its application in identifying potential drug candidates.}
-}
+@article{Komet2024,
+     title={Advancing Drug-Target Interactions Prediction: Leveraging a Large-Scale Dataset with a Rapid and Robust Chemogenomic Algorithm},
+     author={View ORCID ProfileGwenn Guichaoua, Philippe Pinel, Brice Hoffmann, Chloé-Agathe Azencott, Véronique Stoven},
+     journal={BioRxiv},
+      year={2024},
+     doi={10.1101/2024.02.22.581599},
+     url={https://www.biorxiv.org/content/10.1101/2024.02.22.581599v1},
+     abstract={Predicting drug-target interactions (DTIs) is crucial for drug discovery, and heavily relies on supervised learning techniques. In the context of DTI prediction, supervised learning algorithms use known DTIs to learn associations between molecule and protein features, allowing for the prediction of new interactions based on learned patterns. In this paper, we present a novel approach addressing two key challenges in DTI prediction: the availability of large, high-quality training datasets and the scalability of prediction methods. First, we introduce LCIdb, a curated, large-sized dataset of DTIs, offering extensive coverage of both the molecule and druggable protein spaces. Notably, LCIdbcontains a much higher number of molecules, expanding coverage of the molecule space compared to traditional benchmarks. Second, we propose Komet (Kronecker Optimized METhod), a DTI prediction pipeline designed for scalability without compromising performance. Komet leverages a three-step framework, incorporating efficient computation choices tailored for large datasets and involving the Nyström approximation. Specifically, Komet employs a Kronecker interaction module for (molecule, protein) pairs, which is sufficiently expressive and whose structure allows for reduced computational complexity. Our method is implemented in open-source software, lever-aging GPU parallel computation for efficiency. We demonstrate the efficiency of our approach on various datasets, showing that Komet displays superior scalability and prediction performance compared to state-of-the-art deep-learning approaches. Additionally, we illustrate the generalization properties of Komet by showing its ability to solve challenging scaffold-hopping problems gathered in the publicly available LH benchmark. Komet is available open source at https://komet.readthedocs.io.}
 ```
 
 ## Dependencies
