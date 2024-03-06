@@ -24,7 +24,7 @@ If you use this library, please be sure to cite:
 ## Datasets
 
 All datasets, required to reproduce the results of publication "Advancing Drug-Target Interactions Prediction: Leveraging a Large-Scale Dataset with a Rapid and Robust Chemogenomic Algorithm"
-are avalable in [DOI 10.5281/zenodo.10731712](https://zenodo.org/records/10731713).
+are available at [DOI 10.5281/zenodo.10731712](https://zenodo.org/records/10731713).
 
 ## Dependencies
 
