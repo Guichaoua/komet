@@ -6,6 +6,7 @@
 
 This library is designed for computational biology and cheminformatics, focusing on the prediction and analysis of molecular interactions. It provides tools for loading and processing molecular and protein data, computing molecular fingerprints, estimating interaction probabilities, and evaluating model performance. This suite is particularly useful for researchers and developers working in drug discovery and molecular docking simulations.
 
+
 ## Citation 
 
 If you use this library, please be sure to cite:
@@ -20,6 +21,10 @@ If you use this library, please be sure to cite:
      url={https://www.biorxiv.org/content/10.1101/2024.02.22.581599v1},
      abstract={Predicting drug-target interactions (DTIs) is crucial for drug discovery, and heavily relies on supervised learning techniques. In the context of DTI prediction, supervised learning algorithms use known DTIs to learn associations between molecule and protein features, allowing for the prediction of new interactions based on learned patterns. In this paper, we present a novel approach addressing two key challenges in DTI prediction: the availability of large, high-quality training datasets and the scalability of prediction methods. First, we introduce LCIdb, a curated, large-sized dataset of DTIs, offering extensive coverage of both the molecule and druggable protein spaces. Notably, LCIdbcontains a much higher number of molecules, expanding coverage of the molecule space compared to traditional benchmarks. Second, we propose Komet (Kronecker Optimized METhod), a DTI prediction pipeline designed for scalability without compromising performance. Komet leverages a three-step framework, incorporating efficient computation choices tailored for large datasets and involving the Nyström approximation. Specifically, Komet employs a Kronecker interaction module for (molecule, protein) pairs, which is sufficiently expressive and whose structure allows for reduced computational complexity. Our method is implemented in open-source software, lever-aging GPU parallel computation for efficiency. We demonstrate the efficiency of our approach on various datasets, showing that Komet displays superior scalability and prediction performance compared to state-of-the-art deep-learning approaches. Additionally, we illustrate the generalization properties of Komet by showing its ability to solve challenging scaffold-hopping problems gathered in the publicly available LH benchmark. Komet is available open source at https://komet.readthedocs.io.}
 ```
+## Datasets
+
+All datasets, required to reproduce the results of publication "Advancing Drug-Target Interactions Prediction: Leveraging a Large-Scale Dataset with a Rapid and Robust Chemogenomic Algorithm"
+are avalable in [DOI 10.5281/zenodo.10731712](https://zenodo.org/records/10731713).
 
 ## Dependencies
 
@@ -68,38 +73,6 @@ Note: `rdkit` might require additional steps for installation. Please refer to t
 
 - `results(y, y_pred, proba_pred)`: Computes and returns various performance metrics of the model.
 
-## Example Usage
-
-Here's a quick example to show how you can use this library to load data, compute features, train a model, and evaluate its performance:
-
-```python
-import pandas as pd
-
-# Load your dataset
-df = load_df("molecule_data.csv")
-
-# Add indices to SMILES and FASTA sequences
-df, smiles = add_indsmiles(df)
-df, fasta = add_indfasta(df)
-
-# Compute Morgan Fingerprints
-morgan_fp = Morgan_FP(smiles)
-
-# Prepare your dataset
-I, J, y = load_datas(df)
-
-# Train the SVM model
-w_bfgs, b_bfgs = SVM_bfgs(X_cn, Y_cn, y, I, J, lamb=0.01)
-
-# Compute probabilities and evaluate the model
-s, t = compute_proba_Platt_Scalling(w_bfgs, X_cn, Y_cn, y, I, J)
-m, y_pred, proba_pred = compute_proba(w_bfgs, b_bfgs, s, t, X_cn, Y_cn, I, J)
-metrics = results(y, y_pred, proba_pred)
-
-print(metrics)
-```
-
-Ensure to replace `"molecule_data.csv"` with the path to your actual dataset.
 
 ## Contributing
 
