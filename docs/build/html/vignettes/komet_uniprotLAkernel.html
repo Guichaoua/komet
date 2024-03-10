@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Komet with Uniprot LAkernel &mdash; komet 1.0 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/nbsphinx-code-cells.css" type="text/css" />
+    <link rel="shortcut icon" href="../_static/favicon.png"/>
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/doctools.js"></script>
+        <script src="../_static/sphinx_highlight.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="komet module" href="../komet.html" />
+    <link rel="prev" title="komet : Kronecker Optimized METhod for DTI prediction" href="komet.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            komet
+              <img src="../_static/komet-logo-small.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="komet.html">komet : Kronecker Optimized METhod for DTI prediction</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Komet with Uniprot LAkernel</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#1.-Download-from-a-GitHub-repo.">1. Download from a GitHub repo.</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Download-utils">Download utils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Download-train/val/test">Download train/val/test</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#2.-Calculation-of-molecule-features-using-a-subsample-of-train-molecules-(molecule-kernel-approximated-via-Nystrom-approximation)">2. Calculation of molecule features using a subsample of train molecules (molecule kernel approximated via Nystrom approximation)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#3.-Approximated-protein-features,-using-SVD-of-the-Local-Alignment-kernel-precalculated-on-20605-human-proteins">3. Approximated protein features, using SVD of the Local Alignment kernel precalculated on 20605 human proteins</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#INDEX-OF-INTERACTIONS">INDEX OF INTERACTIONS</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#4.-Komet-algorithm">4. Komet algorithm</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#training-with-a-choosen-lambda">training with a choosen lambda</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#Choice-of-\lambda:-Search-for-the-best-lambda-by-choosing-the-best-AUPR-on-the-validation-dataset">Choice of <span class="math notranslate nohighlight">\(\lambda\)</span>: Search for the best lambda by choosing the best AUPR on the validation dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Training/testing-with-lambda_max">Training/testing with lambda_max</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../komet.html">komet module</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">komet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Komet with Uniprot LAkernel</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/vignettes/komet_uniprotLAkernel.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Komet-with-Uniprot-LAkernel">
+<h1>Komet with Uniprot LAkernel<a class="headerlink" href="#Komet-with-Uniprot-LAkernel" title="Permalink to this heading"></a></h1>
+<ol class="arabic simple">
+<li><p>Downloading the dataset (train/val/test) : you can choose different databases</p></li>
+<li><p>Calculating of molecule features using a subsample of train molecules (MorganFP kernel approximated via Nystrom approximation)</p></li>
+<li><p>Loading approximated protein features, using SVD of the Local Alignment kernel precalculated on 20605 human proteins</p></li>
+<li><p>Searching for the best lambda by choosing the best AUPR on the validation dataset</p></li>
+<li><p>Testing with best lambda</p></li>
+</ol>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">load_ext</span> autoreload
+<span class="o">%</span><span class="k">autoreload</span> 2
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.optim</span> <span class="k">as</span> <span class="nn">optim</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">zipfile</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span>  <span class="n">average_precision_score</span><span class="p">,</span>  <span class="n">roc_curve</span><span class="p">,</span> <span class="n">confusion_matrix</span><span class="p">,</span> <span class="n">precision_score</span><span class="p">,</span> <span class="n">recall_score</span><span class="p">,</span> <span class="n">auc</span>
+
+<span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cuda:0&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+<span class="n">device_cpu</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+<span class="n">device_cpu</span> <span class="o">=</span> <span class="n">device</span>
+<span class="nb">print</span><span class="p">(</span> <span class="n">device</span> <span class="p">)</span>
+
+<span class="n">mytype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float16</span> <span class="c1"># to save memory (only on GPU)</span>
+<span class="n">mytype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+cuda:0
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span>pip<span class="w"> </span>install<span class="w"> </span>rdkit
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Collecting rdkit
+  Downloading rdkit-2023.9.5-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (34.4 MB)
+     <span class="ansi-black-intense-fg">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class="ansi-green-fg">34.4/34.4 MB</span> <span class="ansi-red-fg">28.8 MB/s</span> eta <span class="ansi-cyan-fg">0:00:00</span>
+Requirement already satisfied: numpy in /usr/local/lib/python3.10/dist-packages (from rdkit) (1.25.2)
+Requirement already satisfied: Pillow in /usr/local/lib/python3.10/dist-packages (from rdkit) (9.4.0)
+Installing collected packages: rdkit
+Successfully installed rdkit-2023.9.5
+</pre></div></div>
+</div>
+<section id="1.-Download-from-a-GitHub-repo.">
+<h2>1. Download from a GitHub repo.<a class="headerlink" href="#1.-Download-from-a-GitHub-repo." title="Permalink to this heading"></a></h2>
+<section id="Download-utils">
+<h3>Download utils<a class="headerlink" href="#Download-utils" title="Permalink to this heading"></a></h3>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span>wget<span class="w"> </span>-q<span class="w"> </span>https://github.com/Guichaoua/komet/raw/main/komet/komet.py
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">komet</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+cuda:0
+</pre></div></div>
+</div>
+</section>
+<section id="Download-train/val/test">
+<h3>Download train/val/test<a class="headerlink" href="#Download-train/val/test" title="Permalink to this heading"></a></h3>
+<p>Exemples of dataset : * LCIdb/Orphan, * BIOSNAP(full_data,unseen_drug, unseen_protein), * BindingDB.</p>
+<p>These last datasets can be also downloaded on MolTrans Github ex: <a class="reference external" href="https://raw.githubusercontent.com/kexinhuang12345/MolTrans/master/dataset/DAVIS/test.csv">https://raw.githubusercontent.com/kexinhuang12345/MolTrans/master/dataset/DAVIS/test.csv</a>)</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">!</span>mkdir<span class="w"> </span>data/
+<span class="o">!</span>wget<span class="w"> </span>-q<span class="w"> </span>https://github.com/Guichaoua/komet/raw/main/data/LCIdb/Orphan/test.csv
+<span class="o">!</span>mv<span class="w"> </span>test.csv<span class="w"> </span>data/
+<span class="o">!</span>wget<span class="w"> </span>-q<span class="w"> </span>https://github.com/Guichaoua/komet/raw/main/data/LCIdb/Orphan/train.csv.zip
+<span class="o">!</span>mv<span class="w"> </span>train.csv.zip<span class="w"> </span>data/
+<span class="o">!</span>wget<span class="w"> </span>-q<span class="w"> </span>https://github.com/Guichaoua/komet/raw/main/data/LCIdb/Orphan/val.csv
+<span class="o">!</span>mv<span class="w"> </span>val.csv<span class="w"> </span>data/
+<span class="o">!</span>wget<span class="w"> </span>-q<span class="w"> </span>https://github.com/Guichaoua/komet/raw/main/data/dict_ind2fasta_all.data
+<span class="o">!</span>mv<span class="w"> </span>dict_ind2fasta_all.data<span class="w"> </span>data/
+<span class="o">!</span>wget<span class="w"> </span>-q<span class="w"> </span>https://github.com/Guichaoua/komet/raw/main/data/U_small.npy
+<span class="o">!</span>mv<span class="w"> </span>U_small.npy<span class="w"> </span>data/
+<span class="o">!</span>wget<span class="w"> </span>-q<span class="w"> </span>https://github.com/Guichaoua/komet/raw/main/data/Lambda_small.npy
+<span class="o">!</span>mv<span class="w"> </span>Lambda_small.npy<span class="w"> </span>data/
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dataset_dir</span> <span class="o">=</span> <span class="s2">&quot;data/&quot;</span>
+
+<span class="c1"># load data</span>
+<span class="n">train</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">load_df</span><span class="p">(</span><span class="s2">&quot;train.csv.zip&quot;</span><span class="p">,</span><span class="n">dataset_dir</span><span class="p">)</span>
+<span class="n">val</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">load_df</span><span class="p">(</span><span class="s2">&quot;val.csv&quot;</span><span class="p">,</span><span class="n">dataset_dir</span><span class="p">)</span>
+<span class="n">test</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">load_df</span><span class="p">(</span><span class="s2">&quot;test.csv&quot;</span><span class="p">,</span><span class="n">dataset_dir</span><span class="p">)</span>
+
+<span class="c1"># dataframe full has all smiles and fasta sequences</span>
+<span class="n">full</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">train</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">test</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;full shape&quot;</span><span class="p">,</span><span class="n">full</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+number of smiles to clean: 0
+train.csv shape (236530, 3)
+number of smiles to clean: 0
+val.csv shape (21844, 3)
+number of smiles to clean: 0
+test.csv shape (45005, 3)
+full shape (303379, 3)
+</pre></div></div>
+</div>
+</section>
+</section>
+<section id="2.-Calculation-of-molecule-features-using-a-subsample-of-train-molecules-(molecule-kernel-approximated-via-Nystrom-approximation)">
+<h2>2. Calculation of molecule features using a subsample of train molecules (molecule kernel approximated via Nystrom approximation)<a class="headerlink" href="#2.-Calculation-of-molecule-features-using-a-subsample-of-train-molecules-(molecule-kernel-approximated-via-Nystrom-approximation)" title="Permalink to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#### MOLECULE####</span>
+<span class="c1"># Index of the smiles in the dataset</span>
+<span class="n">list_smiles</span> <span class="o">=</span> <span class="n">full</span><span class="p">[[</span><span class="s1">&#39;SMILES&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+<span class="n">nM</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_smiles</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;number of different smiles (mol):&quot;</span><span class="p">,</span><span class="n">nM</span><span class="p">)</span>
+<span class="n">dict_smiles2ind</span> <span class="o">=</span> <span class="p">{</span><span class="n">list_smiles</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nM</span><span class="p">)}</span>
+
+<span class="c1"># add indsmiles in train, val, test</span>
+<span class="n">train</span><span class="p">[</span><span class="s1">&#39;indsmiles&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">train</span><span class="p">[</span><span class="s1">&#39;SMILES&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span><span class="n">dict_smiles2ind</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="p">)</span>
+<span class="n">val</span><span class="p">[</span><span class="s1">&#39;indsmiles&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span><span class="p">[</span><span class="s1">&#39;SMILES&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">dict_smiles2ind</span><span class="p">[</span><span class="n">x</span><span class="p">])</span>
+<span class="n">test</span><span class="p">[</span><span class="s1">&#39;indsmiles&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">test</span><span class="p">[</span><span class="s1">&#39;SMILES&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">dict_smiles2ind</span><span class="p">[</span><span class="n">x</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+number of different smiles (mol): 143255
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Choice of the parameters for the Nystrom approximation and the reduction dimension of the features</span>
+<span class="n">mM</span> <span class="o">=</span> <span class="mi">3000</span> <span class="c1">#all mol to compute the mol kernel for medium-scale database</span>
+<span class="n">dM</span> <span class="o">=</span> <span class="mi">1000</span> <span class="c1">#all dim for the mol features for medium-scale database</span>
+
+<span class="c1"># In case there are less molecules than the number of molecules to compute the Nystrom approximation</span>
+<span class="n">mM</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">mM</span><span class="p">,</span><span class="n">nM</span><span class="p">)</span> <span class="c1"># number of molecule to compute nystrom</span>
+<span class="n">dM</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">dM</span><span class="p">,</span><span class="n">nM</span><span class="p">)</span> <span class="c1"># final dimension of features for molecules</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;mM&quot;</span><span class="p">,</span><span class="n">mM</span><span class="p">,</span><span class="s2">&quot;dM&quot;</span><span class="p">,</span><span class="n">dM</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+mM 3000 dM 1000
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># molecule kernel_first step : computation of Morgan fingerprint for all molecules</span>
+<span class="n">MorganFP</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">Morgan_FP</span><span class="p">(</span><span class="n">list_smiles</span><span class="p">)</span>
+
+<span class="c1"># compute the Nystrom approximation of the mol kernel and the features of the Kronecker kernel (features normalized and calculated on all mol contained in the dataset (train/val/test))</span>
+<span class="n">X_cn</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">Nystrom_X_cn</span><span class="p">(</span><span class="n">mM</span><span class="p">,</span><span class="n">dM</span><span class="p">,</span><span class="n">nM</span><span class="p">,</span><span class="n">MorganFP</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;mol features shape&quot;</span><span class="p">,</span><span class="n">X_cn</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+mol kernel shape torch.Size([3000, 143255])
+mol features shape torch.Size([143255, 1000])
+</pre></div></div>
+</div>
+</section>
+<section id="3.-Approximated-protein-features,-using-SVD-of-the-Local-Alignment-kernel-precalculated-on-20605-human-proteins">
+<h2>3. Approximated protein features, using SVD of the Local Alignment kernel precalculated on 20605 human proteins<a class="headerlink" href="#3.-Approximated-protein-features,-using-SVD-of-the-Local-Alignment-kernel-precalculated-on-20605-human-proteins" title="Permalink to this heading"></a></h2>
+<p><span class="math notranslate nohighlight">\(K_P = U \Lambda U.T\)</span></p>
+<p>With file size constraints on Github, we can only load <span class="math notranslate nohighlight">\(U_{small} = U[:,:1200]\)</span> and <span class="math notranslate nohighlight">\(\Lambda_{small} = \Lambda[:,:1200]\)</span></p>
+<p>You can look in dict_ind2fasta_all.data which proteins are present.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load Precomputed kernel and dict for the proteins</span>
+<span class="n">dict_ind2fasta_all</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s2">&quot;data/dict_ind2fasta_all.data&quot;</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">))</span>
+<span class="n">dict_fasta2ind_all</span> <span class="o">=</span> <span class="p">{</span><span class="n">fasta</span><span class="p">:</span><span class="n">ind</span> <span class="k">for</span> <span class="n">ind</span><span class="p">,</span><span class="n">fasta</span> <span class="ow">in</span> <span class="n">dict_ind2fasta_all</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+<span class="n">U</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;data/U_small.npy&quot;</span><span class="p">))</span>
+<span class="n">Lambda</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;data/Lambda_small.npy&quot;</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;U.shape&quot;</span><span class="p">,</span><span class="n">U</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span><span class="s2">&quot;Lambda.shape&quot;</span><span class="p">,</span><span class="n">Lambda</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+U.shape torch.Size([20605, 1200]) Lambda.shape torch.Size([1200])
+</pre></div></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># computation of feature for protein (no nystrom, just SVD)</span>
+<span class="n">dP</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">U</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">1200</span><span class="p">)</span>
+<span class="n">Y_all</span> <span class="o">=</span> <span class="n">U</span><span class="p">[:,:</span><span class="n">dP</span><span class="p">]</span> <span class="o">@</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">Lambda</span><span class="p">[:</span><span class="n">dP</span><span class="p">]))</span>
+<span class="n">Y_all</span> <span class="o">=</span> <span class="n">U</span><span class="p">[:,:</span><span class="n">dP</span><span class="p">]</span> <span class="o">@</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">Lambda</span><span class="p">[:</span><span class="n">dP</span><span class="p">]))</span>
+<span class="n">Y_all</span> <span class="o">=</span> <span class="n">Y_all</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Index of the protein in the dataset</span>
+<span class="n">fasta</span> <span class="o">=</span> <span class="n">full</span><span class="p">[[</span><span class="s1">&#39;Target Sequence&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span> <span class="c1"># fasta sequence on the dataset, in the same order as the dataset</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;number of different Fasta (protein):&quot;</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">fasta</span><span class="p">))</span>
+<span class="c1"># add ind_fasta dans train, val et test</span>
+<span class="n">train</span><span class="p">[</span><span class="s1">&#39;indfasta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">train</span><span class="p">[</span><span class="s1">&#39;Target Sequence&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">fasta</span><span class="o">==</span><span class="n">x</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">val</span><span class="p">[</span><span class="s1">&#39;indfasta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span><span class="p">[</span><span class="s1">&#39;Target Sequence&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">fasta</span><span class="o">==</span><span class="n">x</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">test</span><span class="p">[</span><span class="s1">&#39;indfasta&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">test</span><span class="p">[</span><span class="s1">&#39;Target Sequence&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span>  <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">fasta</span><span class="o">==</span><span class="n">x</span><span class="p">)[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+number of different Fasta (protein): 2069
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">I_fasta</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">dict_fasta2ind_all</span><span class="p">[</span><span class="n">fasta</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fasta</span><span class="p">))]</span> <span class="c1"># indeY of fasta in the precomputed dict and protein kernel, in the same order as the dataset</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="n">Y_all</span><span class="p">[</span><span class="n">I_fasta</span><span class="p">,:]</span>
+<span class="n">Y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">mytype</span><span class="p">,</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span><span class="p">)</span>
+<span class="n">Y_c</span> <span class="o">=</span> <span class="n">Y</span> <span class="o">-</span> <span class="n">Y</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+<span class="n">Y_cn</span> <span class="o">=</span> <span class="n">Y_c</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">Y_c</span><span class="p">,</span><span class="n">dim</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)[:,</span><span class="kc">None</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;features shape&quot;</span><span class="p">,</span><span class="n">Y_cn</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+features shape torch.Size([2069, 1200])
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+&lt;ipython-input-13-02af9936bc10&gt;:3: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.clone().detach() or sourceTensor.clone().detach().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  Y = torch.tensor(Y,dtype = mytype,device = device)
+</pre></div></div>
+</div>
+<section id="INDEX-OF-INTERACTIONS">
+<h3>INDEX OF INTERACTIONS<a class="headerlink" href="#INDEX-OF-INTERACTIONS" title="Permalink to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># TRAIN</span>
+<span class="n">I</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">load_datas</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
+<span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">I</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;len(train)&quot;</span><span class="p">,</span><span class="n">n</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+len(train) 236530
+</pre></div></div>
+</div>
+</section>
+</section>
+<section id="4.-Komet-algorithm">
+<h2>4. Komet algorithm<a class="headerlink" href="#4.-Komet-algorithm" title="Permalink to this heading"></a></h2>
+<section id="training-with-a-choosen-lambda">
+<h3>training with a choosen lambda<a class="headerlink" href="#training-with-a-choosen-lambda" title="Permalink to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">lamb</span> <span class="o">=</span> <span class="mf">0.01</span>
+<span class="c1"># train the model</span>
+<span class="n">w_bfgs</span><span class="p">,</span><span class="n">b_bfgs</span><span class="p">,</span><span class="n">history_lbfgs_SVM</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">SVM_bfgs</span><span class="p">(</span><span class="n">X_cn</span><span class="p">,</span><span class="n">Y_cn</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">I</span><span class="p">,</span><span class="n">J</span><span class="p">,</span><span class="n">lamb</span><span class="p">,</span><span class="n">niter</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="c1"># compute a probability using weights (Platt scaling)</span>
+<span class="n">s</span><span class="p">,</span><span class="n">t</span><span class="p">,</span><span class="n">history_lbfgs_Platt</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">compute_proba_Platt_Scalling</span><span class="p">(</span><span class="n">w_bfgs</span><span class="p">,</span><span class="n">X_cn</span><span class="p">,</span><span class="n">Y_cn</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">I</span><span class="p">,</span><span class="n">J</span><span class="p">,</span><span class="n">niter</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+L-BFGS time: 5.8838 seconds
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Validation</span>
+<span class="n">I_val</span><span class="p">,</span> <span class="n">J_val</span><span class="p">,</span> <span class="n">y_val</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">load_datas</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+<span class="n">n_val</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">I_val</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;len(val)&quot;</span><span class="p">,</span><span class="n">n_val</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+len(val) 21844
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#### val ####</span>
+<span class="c1"># we compute a probability using weights (Platt scaling)</span>
+<span class="n">m</span><span class="p">,</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">proba_pred</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">compute_proba</span><span class="p">(</span><span class="n">w_bfgs</span><span class="p">,</span><span class="n">b_bfgs</span><span class="p">,</span><span class="n">s</span><span class="p">,</span><span class="n">t</span><span class="p">,</span><span class="n">X_cn</span><span class="p">,</span><span class="n">Y_cn</span><span class="p">,</span><span class="n">I_val</span><span class="p">,</span><span class="n">J_val</span><span class="p">)</span>
+<span class="c1"># we compute the results</span>
+<span class="n">acc1</span><span class="p">,</span><span class="n">au_Roc</span><span class="p">,</span><span class="n">au_PR</span><span class="p">,</span><span class="n">thred_optim</span><span class="p">,</span><span class="n">acc_best</span><span class="p">,</span><span class="n">cm</span><span class="p">,</span><span class="n">FP</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">results</span><span class="p">(</span><span class="n">y_val</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span><span class="n">y_pred</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span><span class="n">proba_pred</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;roc AUC = </span><span class="si">{</span><span class="n">au_Roc</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;AUPR = </span><span class="si">{</span><span class="n">au_PR</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;accuracy (threshold 0.5)= </span><span class="si">{</span><span class="n">acc1</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;best threshold = </span><span class="si">{</span><span class="n">thred_optim</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;accuracy (best threshold)= </span><span class="si">{</span><span class="n">acc_best</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;false positive (best threshold)= </span><span class="si">{</span><span class="n">FP</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+roc AUC = 0.7556
+AUPR = 0.7649
+accuracy (threshold 0.5)= 0.5000
+best threshold = 0.3497
+accuracy (best threshold)= 0.6925
+false positive (best threshold)= 0.3917
+</pre></div></div>
+</div>
+</section>
+</section>
+<section id="Choice-of-\lambda:-Search-for-the-best-lambda-by-choosing-the-best-AUPR-on-the-validation-dataset">
+<h2>Choice of <span class="math notranslate nohighlight">\(\lambda\)</span>: Search for the best lambda by choosing the best AUPR on the validation dataset<a class="headerlink" href="#Choice-of-\lambda:-Search-for-the-best-lambda-by-choosing-the-best-AUPR-on-the-validation-dataset" title="Permalink to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#### Choice of the hyperparameters ####</span>
+<span class="c1"># we use the validation set to choose the hyperparameters</span>
+<span class="c1"># we use the AUPR as a criterion</span>
+<span class="n">lambdas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="o">-</span><span class="mi">11</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span>
+<span class="n">accs</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">aupr</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">lambda_max</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">aupr_max</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="k">for</span> <span class="n">lamb</span> <span class="ow">in</span> <span class="n">lambdas</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;lambda=&quot;</span><span class="p">,</span><span class="n">lamb</span><span class="p">)</span>
+
+    <span class="c1"># train the model</span>
+    <span class="n">w_bfgs</span><span class="p">,</span><span class="n">b_bfgs</span><span class="p">,</span><span class="n">history_lbfgs_SVM</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">SVM_bfgs</span><span class="p">(</span><span class="n">X_cn</span><span class="p">,</span><span class="n">Y_cn</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">I</span><span class="p">,</span><span class="n">J</span><span class="p">,</span><span class="n">lamb</span><span class="p">,</span><span class="n">niter</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+    <span class="c1"># compute a probability using weights (Platt scaling)</span>
+    <span class="n">s</span><span class="p">,</span><span class="n">t</span><span class="p">,</span><span class="n">history_lbfgs_Platt</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">compute_proba_Platt_Scalling</span><span class="p">(</span><span class="n">w_bfgs</span><span class="p">,</span><span class="n">X_cn</span><span class="p">,</span><span class="n">Y_cn</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">I</span><span class="p">,</span><span class="n">J</span><span class="p">,</span><span class="n">niter</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+
+    <span class="c1"># accuracy on the validation set</span>
+    <span class="n">m</span><span class="p">,</span><span class="n">y_pred_val</span><span class="p">,</span> <span class="n">proba_pred_val</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">compute_proba</span><span class="p">(</span><span class="n">w_bfgs</span><span class="p">,</span><span class="n">b_bfgs</span><span class="p">,</span><span class="n">s</span><span class="p">,</span><span class="n">t</span><span class="p">,</span><span class="n">X_cn</span><span class="p">,</span><span class="n">Y_cn</span><span class="p">,</span><span class="n">I_val</span><span class="p">,</span><span class="n">J_val</span><span class="p">)</span>
+    <span class="c1"># we compute the results</span>
+    <span class="n">acc1</span><span class="p">,</span><span class="n">au_Roc</span><span class="p">,</span><span class="n">au_PR</span><span class="p">,</span><span class="n">thred_optim</span><span class="p">,</span><span class="n">acc_best</span><span class="p">,</span><span class="n">cm</span><span class="p">,</span><span class="n">FP</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">results</span><span class="p">(</span><span class="n">y_val</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span><span class="n">y_pred_val</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span><span class="n">proba_pred_val</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
+
+    <span class="n">accs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">acc1</span><span class="p">)</span>
+    <span class="n">aupr</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">au_PR</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">au_PR</span> <span class="o">&gt;</span> <span class="n">aupr_max</span><span class="p">:</span>
+        <span class="n">lambda_max</span><span class="o">=</span><span class="n">lamb</span>
+        <span class="n">aupr_max</span> <span class="o">=</span> <span class="n">au_PR</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="o">*</span><span class="mi">30</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;lambda_max&quot;</span><span class="p">,</span><span class="n">lambda_max</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;aupr_max for val&quot;</span><span class="p">,</span><span class="n">aupr_max</span><span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+lambda= 1e-11
+L-BFGS time: 11.6659 seconds
+lambda= 1e-10
+L-BFGS time: 11.8968 seconds
+lambda= 1e-09
+L-BFGS time: 11.7499 seconds
+lambda= 1e-08
+L-BFGS time: 12.1045 seconds
+lambda= 1e-07
+L-BFGS time: 12.0310 seconds
+lambda= 1e-06
+L-BFGS time: 12.0544 seconds
+lambda= 1e-05
+L-BFGS time: 12.3243 seconds
+lambda= 0.0001
+L-BFGS time: 12.3547 seconds
+lambda= 0.001
+L-BFGS time: 6.4322 seconds
+lambda= 0.01
+L-BFGS time: 3.9367 seconds
+lambda= 0.1
+L-BFGS time: 3.6088 seconds
+lambda= 1.0
+L-BFGS time: 3.6306 seconds
+lambda= 10.0
+L-BFGS time: 3.6039 seconds
+lambda= 100.0
+L-BFGS time: 3.5971 seconds
+------------------------------
+lambda_max 1e-05
+aupr_max for val 0.8511095652601627
+</pre></div></div>
+</div>
+<p>Plot accuracy in function of lambda</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lambdas</span><span class="p">,</span><span class="n">accs</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Accuracy in function of lambda&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/vignettes_komet_uniprotLAkernel_29_0.png" src="../_images/vignettes_komet_uniprotLAkernel_29_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">lambdas</span><span class="p">,</span><span class="n">aupr</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;AUPR in function of lambda&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/vignettes_komet_uniprotLAkernel_30_0.png" src="../_images/vignettes_komet_uniprotLAkernel_30_0.png" />
+</div>
+</div>
+</section>
+<section id="Training/testing-with-lambda_max">
+<h2>Training/testing with lambda_max<a class="headerlink" href="#Training/testing-with-lambda_max" title="Permalink to this heading"></a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">lamb</span> <span class="o">=</span> <span class="n">lambda_max</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;lambda_max=&quot;</span><span class="p">,</span><span class="n">lamb</span><span class="p">)</span>
+<span class="c1"># train the model</span>
+<span class="n">w_bfgs</span><span class="p">,</span><span class="n">b_bfgs</span><span class="p">,</span><span class="n">history_lbfgs_SVM</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">SVM_bfgs</span><span class="p">(</span><span class="n">X_cn</span><span class="p">,</span><span class="n">Y_cn</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">I</span><span class="p">,</span><span class="n">J</span><span class="p">,</span><span class="n">lamb</span><span class="p">,</span><span class="n">niter</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="c1"># compute a probability using weights (Platt scaling)</span>
+<span class="n">s</span><span class="p">,</span><span class="n">t</span><span class="p">,</span><span class="n">history_lbfgs_Platt</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">compute_proba_Platt_Scalling</span><span class="p">(</span><span class="n">w_bfgs</span><span class="p">,</span><span class="n">X_cn</span><span class="p">,</span><span class="n">Y_cn</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">I</span><span class="p">,</span><span class="n">J</span><span class="p">,</span><span class="n">niter</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+lambda_max= 1e-05
+L-BFGS time: 12.1627 seconds
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Test</span>
+<span class="n">I_test</span><span class="p">,</span> <span class="n">J_test</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">load_datas</span><span class="p">(</span><span class="n">test</span><span class="p">)</span>
+<span class="n">n_test</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">I_test</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;len(test)&quot;</span><span class="p">,</span><span class="n">n_test</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+len(test) 45005
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#### TEST ####</span>
+<span class="c1"># we compute a probability using weights (Platt scaling)</span>
+<span class="n">m</span><span class="p">,</span><span class="n">y_pred</span><span class="p">,</span> <span class="n">proba_pred</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">compute_proba</span><span class="p">(</span><span class="n">w_bfgs</span><span class="p">,</span><span class="n">b_bfgs</span><span class="p">,</span><span class="n">s</span><span class="p">,</span><span class="n">t</span><span class="p">,</span><span class="n">X_cn</span><span class="p">,</span><span class="n">Y_cn</span><span class="p">,</span><span class="n">I_test</span><span class="p">,</span><span class="n">J_test</span><span class="p">)</span>
+<span class="c1"># we compute the results</span>
+<span class="n">acc1</span><span class="p">,</span><span class="n">au_Roc</span><span class="p">,</span><span class="n">au_PR</span><span class="p">,</span><span class="n">thred_optim</span><span class="p">,</span><span class="n">acc_best</span><span class="p">,</span><span class="n">cm</span><span class="p">,</span><span class="n">FP</span> <span class="o">=</span> <span class="n">komet</span><span class="o">.</span><span class="n">results</span><span class="p">(</span><span class="n">y_test</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span><span class="n">y_pred</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span><span class="n">proba_pred</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;roc AUC = </span><span class="si">{</span><span class="n">au_Roc</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;AUPR = </span><span class="si">{</span><span class="n">au_PR</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;accuracy (threshold 0.5)= </span><span class="si">{</span><span class="n">acc1</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;best threshold = </span><span class="si">{</span><span class="n">thred_optim</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;accuracy (best threshold)= </span><span class="si">{</span><span class="n">acc_best</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;false positive (best threshold)= </span><span class="si">{</span><span class="n">FP</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+roc AUC = 0.8625
+AUPR = 0.8726
+accuracy (threshold 0.5)= 0.7828
+best threshold = 0.1004
+accuracy (best threshold)= 0.8002
+false positive (best threshold)= 0.1670
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># plot confusion matrix</span>
+<span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">ConfusionMatrixDisplay</span>
+<span class="n">labels</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]</span>
+<span class="n">disp</span> <span class="o">=</span> <span class="n">ConfusionMatrixDisplay</span><span class="p">(</span><span class="n">confusion_matrix</span><span class="o">=</span><span class="n">cm</span><span class="p">,</span>
+                              <span class="n">display_labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
+<span class="n">disp</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/vignettes_komet_uniprotLAkernel_35_0.png" src="../_images/vignettes_komet_uniprotLAkernel_35_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># plot distribution (density) of p when y_test=1</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">proba_pred</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()[</span><span class="n">y_test</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">==</span><span class="mi">1</span><span class="p">],</span><span class="n">bins</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;green&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;y_test=1&#39;</span><span class="p">);</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">proba_pred</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()[</span><span class="n">y_test</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">==-</span><span class="mi">1</span><span class="p">],</span><span class="n">bins</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span><span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;red&#39;</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;y_test=-1&#39;</span><span class="p">);</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Distribution of predicted probability&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/vignettes_komet_uniprotLAkernel_36_0.png" src="../_images/vignettes_komet_uniprotLAkernel_36_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="komet.html" class="btn btn-neutral float-left" title="komet : Kronecker Optimized METhod for DTI prediction" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../komet.html" class="btn btn-neutral float-right" title="komet module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Gwenn Guichaoua.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

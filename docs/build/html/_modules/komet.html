@@ -44,7 +44,8 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../vignettes/komet_v2.html">Test of komet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignettes/komet.html">komet : Kronecker Optimized METhod for DTI prediction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignettes/komet_uniprotLAkernel.html">Komet with Uniprot LAkernel</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API</span></p>
 <ul>
@@ -101,7 +102,7 @@
 <span class="n">mytype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float16</span>  <span class="c1"># to save memory (only on GPU)</span>
 <span class="n">mytype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
 
-<div class="viewcode-block" id="load_df"><a class="viewcode-back" href="../komet.html#komet.load_df">[docs]</a><span class="k">def</span> <span class="nf">load_df</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="load_df"><a class="viewcode-back" href="../komet.html#komet.load_df">[docs]</a><span class="k">def</span> <span class="nf">load_df</span><span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">dataset_dir</span><span class="o">=</span><span class="s2">&quot;data&quot;</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Loads a dataframe from a CSV file, cleans up SMILES strings that cannot be read by RDKit,</span>
 <span class="sd">    and returns the cleaned dataframe.</span>
@@ -109,21 +110,23 @@
 <span class="sd">    :param name: The name of the file (with extension) to be loaded. If the file is a zip archive,</span>
 <span class="sd">                 it will be extracted first.</span>
 <span class="sd">    :type name: str</span>
+<span class="sd">    :param dataset_dir: The directory where the dataset is located, by default &quot;data&quot;.</span>
+<span class="sd">    :type dataset_dir: str, optional</span>
 <span class="sd">    :return: The cleaned dataframe with SMILES strings that RDKit can read.</span>
 <span class="sd">    :rtype: pd.DataFrame</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># If the data is in a zip file, unzip it</span>
+    <span class="c1"># if the data is in a zip file, unzip it</span>
     <span class="k">if</span> <span class="s2">&quot;.zip&quot;</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;data/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">zip_ref</span><span class="p">:</span>
-            <span class="n">zip_ref</span><span class="o">.</span><span class="n">extractall</span><span class="p">(</span><span class="s2">&quot;data/&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">zipfile</span><span class="o">.</span><span class="n">ZipFile</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dataset_dir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">zip_ref</span><span class="p">:</span>
+            <span class="n">zip_ref</span><span class="o">.</span><span class="n">extractall</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dataset_dir</span><span class="si">}</span><span class="s2">/&quot;</span><span class="p">)</span>
         <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>
-    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;data/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="c1"># Clean smiles</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">dataset_dir</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span><span class="n">index_col</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># clean smiles</span>
     <span class="n">smiles</span> <span class="o">=</span> <span class="n">df</span><span class="p">[[</span><span class="s1">&#39;SMILES&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
     <span class="n">l_smiles</span> <span class="o">=</span> <span class="p">[</span><span class="n">sm</span> <span class="k">for</span> <span class="n">sm</span> <span class="ow">in</span> <span class="n">smiles</span> <span class="k">if</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">sm</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">]</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;number of smiles to clean: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">l_smiles</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="o">~</span><span class="n">df</span><span class="p">[</span><span class="s1">&#39;SMILES&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">l_smiles</span><span class="p">)]</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> shape&quot;</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> shape&quot;</span><span class="p">,</span><span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">df</span></div>
 
 <div class="viewcode-block" id="add_indsmiles"><a class="viewcode-back" href="../komet.html#komet.add_indsmiles">[docs]</a><span class="k">def</span> <span class="nf">add_indsmiles</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
@@ -140,7 +143,6 @@
     <span class="n">smiles</span> <span class="o">=</span> <span class="n">df</span><span class="p">[[</span><span class="s1">&#39;SMILES&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
     <span class="n">nM</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">smiles</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;number of different smiles (mol):&quot;</span><span class="p">,</span> <span class="n">nM</span><span class="p">)</span>
-    <span class="n">dict_ind2smiles</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="n">smiles</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nM</span><span class="p">)}</span>
     <span class="n">dict_smiles2ind</span> <span class="o">=</span> <span class="p">{</span><span class="n">smiles</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">nM</span><span class="p">)}</span>
     <span class="c1"># Add indsmiles in df</span>
     <span class="n">df</span><span class="p">[</span><span class="s1">&#39;indsmiles&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;SMILES&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">dict_smiles2ind</span><span class="p">[</span><span class="n">x</span><span class="p">])</span>
@@ -171,6 +173,40 @@
     <span class="n">MorganFP</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">MorganFP</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">mytype</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">MorganFP</span></div>
 
+<div class="viewcode-block" id="Nystrom_X_cn"><a class="viewcode-back" href="../komet.html#komet.Nystrom_X_cn">[docs]</a><span class="k">def</span> <span class="nf">Nystrom_X_cn</span><span class="p">(</span><span class="n">mM</span><span class="p">,</span><span class="n">rM</span><span class="p">,</span><span class="n">nM</span><span class="p">,</span><span class="n">MorganFP</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the Nystrom approximation of the centered normalized feature matrix.</span>
+
+<span class="sd">    :param mM: Number of molecule landmarks</span>
+<span class="sd">    :type mM: int</span>
+<span class="sd">    :param rM: Number of dimensions to keep after SVD for molecule features</span>
+<span class="sd">    :type rM: int</span>
+<span class="sd">    :param nM: Total number of molecules.</span>
+<span class="sd">    :type nM: int</span>
+<span class="sd">    :param MorganFP: Matrix of Morgan fingerprints of shape (nM, fingerprint_length).</span>
+<span class="sd">    :type MorganFP: numpy.ndarray</span>
+<span class="sd">    :return: The centered normalized feature matrix.</span>
+<span class="sd">    :rtype: torch.Tensor</span>
+<span class="sd">    :notes: This function computes the Nystrom approximation of the feature matrix using the given</span>
+<span class="sd">            Morgan fingerprints. It first selects a random subset S of size mM from the total</span>
+<span class="sd">            nM molecules. It then computes the kernel matrix K using the selected subset.</span>
+<span class="sd">            The approximate feature matrix is computed using Singular Value Decomposition (SVD)</span>
+<span class="sd">            on K. Finally, the features are normalized by centering and dividing by their L2 norm.</span>
+
+<span class="sd">            The input MorganFP should be a numpy array with shape (nM, fingerprint_length).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">nM</span><span class="p">)[:</span><span class="n">mM</span><span class="p">]</span>
+    <span class="n">S</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+    <span class="n">K</span> <span class="o">=</span> <span class="p">(</span> <span class="n">MorganFP</span><span class="p">[</span><span class="n">S</span><span class="p">,:]</span> <span class="o">@</span> <span class="n">MorganFP</span><span class="o">.</span><span class="n">T</span> <span class="p">)</span> <span class="o">/</span> <span class="p">(</span> <span class="mi">1024</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">MorganFP</span><span class="p">[</span><span class="n">S</span><span class="p">,:])</span> <span class="o">@</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">MorganFP</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;mol kernel shape&quot;</span><span class="p">,</span><span class="n">K</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="c1"># compute the approximate mol features with SVD</span>
+    <span class="n">U</span><span class="p">,</span> <span class="n">Lambda</span><span class="p">,</span> <span class="n">VT</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span><span class="n">K</span><span class="p">[:,</span><span class="n">S</span><span class="p">])</span>
+    <span class="n">epsi</span> <span class="o">=</span> <span class="mf">1e-8</span>  <span class="c1"># be careful when we divide by Lambda near 0</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">K</span><span class="o">.</span><span class="n">T</span> <span class="o">@</span> <span class="n">U</span><span class="p">[:,:</span><span class="n">rM</span><span class="p">]</span> <span class="o">@</span> <span class="n">torch</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">epsi</span> <span class="o">+</span> <span class="n">Lambda</span><span class="p">[:</span><span class="n">rM</span><span class="p">]))</span>
+    <span class="c1"># nomramlisation of the features</span>
+    <span class="n">X_c</span> <span class="o">=</span> <span class="n">X</span> <span class="o">-</span> <span class="n">X</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">X_cn</span> <span class="o">=</span> <span class="n">X_c</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">X_c</span><span class="p">,</span><span class="n">dim</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)[:,</span><span class="kc">None</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">X_cn</span></div>
 
 <div class="viewcode-block" id="Nystrom_X"><a class="viewcode-back" href="../komet.html#komet.Nystrom_X">[docs]</a><span class="k">def</span> <span class="nf">Nystrom_X</span><span class="p">(</span><span class="n">smiles_list</span><span class="p">,</span> <span class="n">S</span><span class="p">,</span> <span class="n">MorganFP</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">rM</span><span class="p">,</span> <span class="n">Mu</span><span class="p">,</span> <span class="n">epsi</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -230,7 +266,7 @@
     <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">y</span> <span class="o">-</span> <span class="mf">.5</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">I</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">y</span></div>
 
-<div class="viewcode-block" id="SVM_bfgs"><a class="viewcode-back" href="../komet.html#komet.SVM_bfgs">[docs]</a><span class="k">def</span> <span class="nf">SVM_bfgs</span><span class="p">(</span><span class="n">X_cn</span><span class="p">,</span> <span class="n">Y_cn</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">lamb</span><span class="p">):</span>
+<div class="viewcode-block" id="SVM_bfgs"><a class="viewcode-back" href="../komet.html#komet.SVM_bfgs">[docs]</a><span class="k">def</span> <span class="nf">SVM_bfgs</span><span class="p">(</span><span class="n">X_cn</span><span class="p">,</span> <span class="n">Y_cn</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span> <span class="n">lamb</span><span class="p">,</span><span class="n">niter</span> <span class="o">=</span> <span class="mi">50</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Trains an SVM model using the L-BFGS optimization algorithm to minimize the loss function.</span>
 
@@ -240,8 +276,9 @@
 <span class="sd">    :param I: Indices of molecules.</span>
 <span class="sd">    :param J: Indices of proteins.</span>
 <span class="sd">    :param lamb: Regularization parameter.</span>
-<span class="sd">    :return: Optimized weight and bias parameters for the SVM model.</span>
-<span class="sd">    :rtype: tuple[torch.Tensor, torch.Tensor]</span>
+<span class="sd">    :param niter: Number of iterations for the L-BFGS optimization algorithm.</span>
+<span class="sd">    :return: Optimized weight and bias parameters for the SVM model, and the history of the loss function.</span>
+<span class="sd">    :rtype: tuple[torch.Tensor, torch.Tensor, list[float]]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">I</span><span class="p">)</span>
     <span class="n">XI</span> <span class="o">=</span> <span class="n">X_cn</span><span class="p">[</span><span class="n">I</span><span class="p">,</span> <span class="p">:]</span>
@@ -266,16 +303,16 @@
     <span class="n">b_bfgs</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="n">lbfgs</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">LBFGS</span><span class="p">([</span><span class="n">w_bfgs</span><span class="p">,</span> <span class="n">b_bfgs</span><span class="p">],</span> <span class="n">history_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">line_search_fn</span><span class="o">=</span><span class="s2">&quot;strong_wolfe&quot;</span><span class="p">)</span>
-    <span class="n">niter</span> <span class="o">=</span> <span class="mi">50</span>
+    
     <span class="n">history_lbfgs</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">tic</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">niter</span><span class="p">):</span>
         <span class="n">history_lbfgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">g</span><span class="p">(</span><span class="n">w_bfgs</span><span class="p">,</span> <span class="n">b_bfgs</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
         <span class="n">lbfgs</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">closure</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;L-BFGS time: </span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">tic</span><span class="si">:</span><span class="s2">0.4f</span><span class="si">}</span><span class="s2"> seconds&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">w_bfgs</span><span class="p">,</span> <span class="n">b_bfgs</span></div>
+    <span class="k">return</span> <span class="n">w_bfgs</span><span class="p">,</span> <span class="n">b_bfgs</span><span class="p">,</span><span class="n">history_lbfgs</span></div>
 
-<div class="viewcode-block" id="compute_proba_Platt_Scalling"><a class="viewcode-back" href="../komet.html#komet.compute_proba_Platt_Scalling">[docs]</a><span class="k">def</span> <span class="nf">compute_proba_Platt_Scalling</span><span class="p">(</span><span class="n">w_bfgs</span><span class="p">,</span> <span class="n">X_cn</span><span class="p">,</span> <span class="n">Y_cn</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">J</span><span class="p">):</span>
+<div class="viewcode-block" id="compute_proba_Platt_Scalling"><a class="viewcode-back" href="../komet.html#komet.compute_proba_Platt_Scalling">[docs]</a><span class="k">def</span> <span class="nf">compute_proba_Platt_Scalling</span><span class="p">(</span><span class="n">w_bfgs</span><span class="p">,</span> <span class="n">X_cn</span><span class="p">,</span> <span class="n">Y_cn</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">J</span><span class="p">,</span><span class="n">niter</span> <span class="o">=</span> <span class="mi">20</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Computes probability estimates for interaction predictions using Platt scaling.</span>
 
@@ -285,8 +322,9 @@
 <span class="sd">    :param y: Interaction labels.</span>
 <span class="sd">    :param I: Indices of molecules.</span>
 <span class="sd">    :param J: Indices of proteins.</span>
-<span class="sd">    :return: Optimized parameters &#39;s&#39; and &#39;t&#39; for Platt scaling.</span>
-<span class="sd">    :rtype: tuple[torch.Tensor, torch.Tensor]</span>
+<span class="sd">    :param niter: Number of iterations for the L-BFGS optimization algorithm.</span>
+<span class="sd">    :return: Optimized parameters &#39;s&#39; and &#39;t&#39; for Platt scaling, and the history of the loss function.</span>
+<span class="sd">    :rtype: tuple[torch.Tensor, torch.Tensor,list[float]]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">I</span><span class="p">)</span>
     <span class="n">XI</span> <span class="o">=</span> <span class="n">X_cn</span><span class="p">[</span><span class="n">I</span><span class="p">,</span> <span class="p">:]</span>
@@ -307,13 +345,13 @@
     <span class="n">s</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">t</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">lbfgs</span> <span class="o">=</span> <span class="n">optim</span><span class="o">.</span><span class="n">LBFGS</span><span class="p">([</span><span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">],</span> <span class="n">history_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">max_iter</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">line_search_fn</span><span class="o">=</span><span class="s2">&quot;strong_wolfe&quot;</span><span class="p">)</span>
-    <span class="n">niter</span> <span class="o">=</span> <span class="mi">20</span>
+
     <span class="n">history_lbfgs</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">niter</span><span class="p">):</span>
         <span class="n">history_lbfgs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">E</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
         <span class="n">lbfgs</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">closure</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">s</span><span class="p">,</span> <span class="n">t</span></div>
+    <span class="k">return</span> <span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span><span class="n">history_lbfgs</span></div>
 
 
 <div class="viewcode-block" id="compute_proba"><a class="viewcode-back" href="../komet.html#komet.compute_proba">[docs]</a><span class="k">def</span> <span class="nf">compute_proba</span><span class="p">(</span><span class="n">w_bfgs</span><span class="p">,</span> <span class="n">b_bfgs</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">X_cn</span><span class="p">,</span> <span class="n">Y_cn</span><span class="p">,</span> <span class="n">I</span><span class="p">,</span> <span class="n">J</span><span class="p">):</span>
