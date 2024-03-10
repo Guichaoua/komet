@@ -26,6 +26,7 @@ Komet - Kronecker Optimized Method for DTI Prediction
    :caption: API
 
    komet
+   
 
 
 Overview
