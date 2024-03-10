@@ -85,7 +85,7 @@ Note: `rdkit` might require additional steps for installation. Please refer to t
 
 ### Utility Functions
 
-- `process_LCIdb(name_file, data_dir, max_length_fasta, bioactivity_choice, min_weight, max_weight, interaction_plus, interaction_minus): Process dataset from the LCI database.
+- `process_LCIdb(name_file, data_dir, max_length_fasta, bioactivity_choice, min_weight, max_weight, interaction_plus, interaction_minus)`: Process dataset from the LCI database.
 
 
 ## Contributing
