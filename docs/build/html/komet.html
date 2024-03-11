@@ -62,6 +62,11 @@
 <li class="toctree-l2"><a class="reference internal" href="#komet.compute_proba_Platt_Scalling"><code class="docutils literal notranslate"><span class="pre">compute_proba_Platt_Scalling()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#komet.load_datas"><code class="docutils literal notranslate"><span class="pre">load_datas()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#komet.load_df"><code class="docutils literal notranslate"><span class="pre">load_df()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#komet.make_train_test_val_S1"><code class="docutils literal notranslate"><span class="pre">make_train_test_val_S1()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#komet.make_train_test_val_S2"><code class="docutils literal notranslate"><span class="pre">make_train_test_val_S2()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#komet.make_train_test_val_S3"><code class="docutils literal notranslate"><span class="pre">make_train_test_val_S3()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#komet.make_train_test_val_S4"><code class="docutils literal notranslate"><span class="pre">make_train_test_val_S4()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#komet.process_LCIdb"><code class="docutils literal notranslate"><span class="pre">process_LCIdb()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="#komet.results"><code class="docutils literal notranslate"><span class="pre">results()</span></code></a></li>
 </ul>
 </li>
@@ -313,6 +318,142 @@ it will be extracted first.</p></li>
 <dd class="field-odd"><p>pd.DataFrame</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="komet.make_train_test_val_S1">
+<span class="sig-prename descclassname"><span class="pre">komet.</span></span><span class="sig-name descname"><span class="pre">make_train_test_val_S1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.12</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/komet.html#make_train_test_val_S1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#komet.make_train_test_val_S1" title="Permalink to this definition"></a></dt>
+<dd><p>Splits the input DataFrame into training, testing, and validation datasets. The function first converts the DataFrame into a
+numpy matrix where rows correspond to ‘indfasta’ (protein indices), columns to ‘indsmiles’ (drug indices), and cell values to ‘score’ (interaction score).
+It then identifies positive (interaction score = 1) and negative (interaction score = 0) interactions and distributes them into
+training, testing, and validation sets according to the specified ratios. The split is done ensuring that each set contains a
+balanced proportion of positive and unknown interactions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<em>pandas.DataFrame</em>) – Input data containing the columns ‘indfasta’, ‘indsmiles’, and ‘score’.</p></li>
+<li><p><strong>train_ratio</strong> (<em>float</em><em>, </em><em>optional</em>) – The proportion of the dataset to be used for the training set, defaults to 0.8.</p></li>
+<li><p><strong>test_ratio</strong> (<em>float</em><em>, </em><em>optional</em>) – The proportion of the dataset to be used for the testing set, defaults to 0.12.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple of numpy arrays representing the training, testing, and validation datasets respectively.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(numpy.ndarray, numpy.ndarray, numpy.ndarray)</p>
+</dd>
+</dl>
+<p>Note:
+The remaining portion of the dataset not allocated to training or testing is used for validation.
+This function assumes that the DataFrame’s ‘score’ column contains binary values (1 for interaction and 0 for no interaction).
+NaN values in ‘score’ are treated as unknown interactions and are handled separately.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="komet.make_train_test_val_S2">
+<span class="sig-prename descclassname"><span class="pre">komet.</span></span><span class="sig-name descname"><span class="pre">make_train_test_val_S2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/komet.html#make_train_test_val_S2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#komet.make_train_test_val_S2" title="Permalink to this definition"></a></dt>
+<dd><p>Splits the interaction data into distinct training, testing, and validation datasets,
+ensuring molecules in the test set are not in the training set and molecules in the validation set
+are not in the training set. It processes input data to form interaction matrices and categorizes
+these interactions into positive, negative, and unknown based on their presence, absence, or uncertainty in the dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pandas.DataFrame</em>) – The input data containing the columns ‘indfasta’, ‘indsmiles’, and ‘score’, representing interaction data between proteins and molecules.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple of numpy.ndarrays representing the training, testing, and validation datasets. Each set contains arrays of interactions labeled with indices and interaction scores, with drugs and proteins split according to specified criteria to ensure separation between training, testing, and validation sets.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<p>The function performs the following steps:
+- Convert the DataFrame to a numpy array of interaction scores.
+- Determine the unique proteins and drugs, assigning them to train, test, and validation groups based on specified proportions.
+- For each group, create datasets of positive and negative interactions, handling missing values as unknown interactions.
+- Ensure there is no overlap of molecules between the training set and either the testing or validation sets.
+- Return the prepared datasets for further processing or model training.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="komet.make_train_test_val_S3">
+<span class="sig-prename descclassname"><span class="pre">komet.</span></span><span class="sig-name descname"><span class="pre">make_train_test_val_S3</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/komet.html#make_train_test_val_S3"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#komet.make_train_test_val_S3" title="Permalink to this definition"></a></dt>
+<dd><p>Splits the interaction matrix into training, testing, and validation sets, ensuring there is no overlap
+between the proteins in the training set and those in the testing or validation sets. The split is based
+on the initial distribution of proteins and molecules in the interaction matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pandas.DataFrame</em>) – The input DataFrame containing the columns ‘indfasta’ for proteins, ‘indsmiles’ for molecules, and ‘score’ for their interaction scores.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple containing the training, testing, and validation sets, each as a numpy.ndarray with the first column representing the index of proteins, the second column the index of molecules, and the third column the interaction scores (1 for interaction, 0 for no interaction, and np.nan for unknown interactions).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<p>The function performs the following operations:
+- Converts the DataFrame to a numpy array representing the interaction scores.
+- Randomly shuffles and splits proteins and molecules into distinct groups for training, testing, and validation based on predefined ratios.
+- Creates interaction datasets for each set, ensuring proteins in the test set are not in the train set, and proteins in the val set are not in the train set, thereby preventing data leakage.
+- Handles missing values and ensures the final datasets are balanced in terms of positive and negative interactions.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="komet.make_train_test_val_S4">
+<span class="sig-prename descclassname"><span class="pre">komet.</span></span><span class="sig-name descname"><span class="pre">make_train_test_val_S4</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">df</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/komet.html#make_train_test_val_S4"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#komet.make_train_test_val_S4" title="Permalink to this definition"></a></dt>
+<dd><p>Splits the interaction matrix into balanced training, testing, and validation sets ensuring there is no
+overlap between the proteins and molecules in the training set compared to those in the testing and
+validation sets. This aims to create distinct and balanced sets for robust model evaluation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>df</strong> (<em>pandas.DataFrame</em>) – Input DataFrame containing interaction data with ‘indfasta’ for proteins, ‘indsmiles’ for molecules,
+and ‘score’ for interaction scores.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple containing the training, testing, and validation datasets. Each dataset consists of a numpy array with three columns: protein indices, molecule indices, and interaction scores. The interaction scores are 1 for positive interactions, 0 for negative interactions, and np.nan for unknown interactions.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<p>The function executes the following major steps:
+- Converts the DataFrame to a numpy array to represent the interaction scores.
+- Splits proteins and molecules into distinct groups for training, testing, and validation based on predefined criteria, ensuring there’s no overlap between the sets for proteins and molecules.
+- Constructs interaction datasets for each set by maintaining a balance between positive and negative interactions and properly handling unknown interactions.
+- Ensures the testing and validation sets are balanced and do not contain any proteins or molecules present in the training set, thus avoiding data leakage and ensuring the model’s generalizability.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="komet.process_LCIdb">
+<span class="sig-prename descclassname"><span class="pre">komet.</span></span><span class="sig-name descname"><span class="pre">process_LCIdb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name_file</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length_fasta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bioactivity_choice</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'checkand1database'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">900</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interaction_plus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1e-07</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interaction_minus</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/komet.html#process_LCIdb"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#komet.process_LCIdb" title="Permalink to this definition"></a></dt>
+<dd><p>Processes data from a given ligand-chemical interaction database file and performs various data cleaning and transformation steps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name_file</strong> (<em>str</em>) – The name of the file containing the database information.</p></li>
+<li><p><strong>data_dir</strong> (<em>str</em><em>, </em><em>optional</em>) – The directory where the database file and the file prot_uniprot_fasta_all.csv are located, defaults to “./”.</p></li>
+<li><p><strong>max_length_fasta</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum length of FASTA sequences to be included, defaults to 1000.</p></li>
+<li><p><strong>bioactivity_choice</strong> (<em>str</em><em>, </em><em>optional</em>) – The type of bioactivity data to include, defaults to ‘checkand1database’.</p></li>
+<li><p><strong>min_weight</strong> (<em>int</em><em>, </em><em>optional</em>) – The minimum molecular weight of the ligands to be included, defaults to 100.</p></li>
+<li><p><strong>max_weight</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum molecular weight of the ligands to be included, defaults to 900.</p></li>
+<li><p><strong>interaction_plus</strong> (<em>float</em><em>, </em><em>optional</em>) – The threshold for positive interaction, defaults to 1e-7.</p></li>
+<li><p><strong>interaction_minus</strong> (<em>float</em><em>, </em><em>optional</em>) – The threshold for negative interaction, defaults to 1e-4.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A pandas DataFrame containing the processed and filtered data.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pandas.DataFrame</p>
+</dd>
+</dl>
+<p>The function performs the following steps:
+- Reads the database and filters based on activity type (pIC50, pKd, pKi) and units (negative logarithm).
+- Merges with protein FASTA sequence data and filters based on sequence length and molecular weight.
+- Processes bioactivity data based on the selected type and calculates mean, min, and max bioactivity values.
+- Aggregates data based on SMILES representation and FASTA sequence, and calculates interaction scores.
+- Saves the processed data to a new CSV file.</p>
 </dd></dl>
 
 <dl class="py function">

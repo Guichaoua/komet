@@ -153,6 +153,30 @@
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">results(y,</span> <span class="pre">y_pred,</span> <span class="pre">proba_pred)</span></code>: Computes and returns various performance metrics of the model.</p></li>
 </ul>
+<p>Data Splitting Functions : Functions to split interaction matrices into training, testing, and validation sets ensuring proper separation and balance</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">make_train_test_val_S1(df,</span> <span class="pre">train_ratio,</span> <span class="pre">test_ratio)</span></code>: Splits the input DataFrame into training, testing, and validation datasets.</p></li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">make_train_test_val_S2(df)</span></code>: Splits the interaction matrix into training, testing, and validation sets, ensuring there is no overlap</dt><dd><p>between the molecules in the training set and those in the testing or validation sets (Unseen_drugs scenario).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">make_train_test_val_S3(df)</span></code>: Splits the interaction matrix into training, testing, and validation sets, ensuring there is no overlap</dt><dd><p>between the proteins in the training set and those in the testing or validation sets (Unseen_targets scenario).</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">make_train_test_val_S4(df)</span></code>: Splits the interaction matrix into balanced training, testing, and validation sets ensuring there is no</dt><dd><p>overlap between the proteins and molecules in the training set compared to those in the testing and
+validation sets (Orphan).</p>
+</dd>
+</dl>
+</li>
+</ul>
+<p>Utility Functions</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">process_LCIdb(name_file,</span> <span class="pre">data_dir,</span> <span class="pre">max_length_fasta,</span> <span class="pre">bioactivity_choice,</span> <span class="pre">min_weight,</span> <span class="pre">max_weight,</span> <span class="pre">interaction_plus,</span> <span class="pre">interaction_minus)</span></code>: Process dataset from the LCI database.</p></li>
+</ul>
 </section>
 </section>
 <section id="example-usage">

@@ -26,6 +26,7 @@ Komet - Kronecker Optimized Method for DTI Prediction
    :caption: API
 
    komet
+   
 
 
 Overview
@@ -94,6 +95,25 @@ Evaluation
 ~~~~~~~~~~
 
 - ``results(y, y_pred, proba_pred)``: Computes and returns various performance metrics of the model.
+
+Data Splitting Functions : Functions to split interaction matrices into training, testing, and validation sets ensuring proper separation and balance
+
+
+- ``make_train_test_val_S1(df, train_ratio, test_ratio)``: Splits the input DataFrame into training, testing, and validation datasets.
+- ``make_train_test_val_S2(df)``: Splits the interaction matrix into training, testing, and validation sets, ensuring there is no overlap
+    between the molecules in the training set and those in the testing or validation sets (Unseen_drugs scenario).
+- ``make_train_test_val_S3(df)``: Splits the interaction matrix into training, testing, and validation sets, ensuring there is no overlap
+    between the proteins in the training set and those in the testing or validation sets (Unseen_targets scenario).
+- ``make_train_test_val_S4(df)``: Splits the interaction matrix into balanced training, testing, and validation sets ensuring there is no 
+    overlap between the proteins and molecules in the training set compared to those in the testing and 
+    validation sets (Orphan).
+
+Utility Functions
+
+
+- ``process_LCIdb(name_file, data_dir, max_length_fasta, bioactivity_choice, min_weight, max_weight, interaction_plus, interaction_minus)``: Process dataset from the LCI database.
+
+
 
 Example Usage
 -------------
