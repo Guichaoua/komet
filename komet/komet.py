@@ -760,23 +760,16 @@ def make_train_test_val_S3(df):
     between the proteins in the training set and those in the testing or validation sets. The split is based
     on the initial distribution of proteins and molecules in the interaction matrix.
 
-    :param df: The input DataFrame containing the columns 'indfasta' for proteins, 'indsmiles' for molecules, 
-               and 'score' for their interaction scores.
+    :param df: The input DataFrame containing the columns 'indfasta' for proteins, 'indsmiles' for molecules, and 'score' for their interaction scores.
     :type df: pandas.DataFrame
-    :return: A tuple containing the training, testing, and validation sets, each as a numpy.ndarray with the 
-             first column representing the index of proteins, the second column the index of molecules, and 
-             the third column the interaction scores (1 for interaction, 0 for no interaction, and np.nan 
-             for unknown interactions).
+    :return: A tuple containing the training, testing, and validation sets, each as a numpy.ndarray with the first column representing the index of proteins, the second column the index of molecules, and the third column the interaction scores (1 for interaction, 0 for no interaction, and np.nan for unknown interactions).
     :rtype: tuple
 
     The function performs the following operations:
     - Converts the DataFrame to a numpy array representing the interaction scores.
-    - Randomly shuffles and splits proteins and molecules into distinct groups for training, testing, and 
-      validation based on predefined ratios.
-    - Creates interaction datasets for each set, ensuring proteins in the test set are not in the train set,
-      and proteins in the val set are not in the train set, thereby preventing data leakage.
-    - Handles missing values and ensures the final datasets are balanced in terms of positive and negative 
-      interactions.
+    - Randomly shuffles and splits proteins and molecules into distinct groups for training, testing, and validation based on predefined ratios.
+    - Creates interaction datasets for each set, ensuring proteins in the test set are not in the train set, and proteins in the val set are not in the train set, thereby preventing data leakage.
+    - Handles missing values and ensures the final datasets are balanced in terms of positive and negative interactions.
     """
 
     try : 
@@ -990,19 +983,14 @@ def make_train_test_val_S4(df):
     :param df: Input DataFrame containing interaction data with 'indfasta' for proteins, 'indsmiles' for molecules, 
                and 'score' for interaction scores.
     :type df: pandas.DataFrame
-    :return: A tuple containing the training, testing, and validation datasets. Each dataset consists of a numpy 
-             array with three columns: protein indices, molecule indices, and interaction scores. The interaction 
-             scores are 1 for positive interactions, 0 for negative interactions, and np.nan for unknown interactions.
+    :return: A tuple containing the training, testing, and validation datasets. Each dataset consists of a numpy array with three columns: protein indices, molecule indices, and interaction scores. The interaction scores are 1 for positive interactions, 0 for negative interactions, and np.nan for unknown interactions.
     :rtype: tuple
 
     The function executes the following major steps:
     - Converts the DataFrame to a numpy array to represent the interaction scores.
-    - Splits proteins and molecules into distinct groups for training, testing, and validation based on predefined 
-      criteria, ensuring there's no overlap between the sets for proteins and molecules.
-    - Constructs interaction datasets for each set by maintaining a balance between positive and negative 
-      interactions and properly handling unknown interactions.
-    - Ensures the testing and validation sets are balanced and do not contain any proteins or molecules present 
-      in the training set, thus avoiding data leakage and ensuring the model's generalizability.
+    - Splits proteins and molecules into distinct groups for training, testing, and validation based on predefined criteria, ensuring there's no overlap between the sets for proteins and molecules.
+    - Constructs interaction datasets for each set by maintaining a balance between positive and negative interactions and properly handling unknown interactions.
+    - Ensures the testing and validation sets are balanced and do not contain any proteins or molecules present in the training set, thus avoiding data leakage and ensuring the model's generalizability.
     """
 
     try : 
