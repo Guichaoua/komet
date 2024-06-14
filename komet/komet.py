@@ -6,6 +6,9 @@ import zipfile
 from rdkit import Chem
 from rdkit.Chem import AllChem
 
+from sklearn.model_selection import GroupKFold,KFold
+from sklearn.model_selection import train_test_split
+
 import torch
 import torch.optim as optim
 from sklearn import svm
@@ -1193,6 +1196,776 @@ def make_train_test_val_S4(df):
     print("Train/test/val datasets prepared.")
 
     return train,test,val
+
+def make_CV_train_test_S1(df,nb_folds,path_mkdir):
+  """
+    Splits the input DataFrame into cross-validation training and testing datasets, ensuring the same proportion 
+    of positive (interaction score = 1) and negative (interaction score = 0) interactions in each set. The function 
+    performs K-fold cross-validation with the specified number of folds.
+
+    :param df: Input data containing the columns 'indfasta', 'indsmiles', and 'score'.
+    :type df: pandas.DataFrame
+    :param nb_folds: Number of folds for cross-validation.
+    :type nb_folds: int
+    :param path_mkdir: Path to the directory where the output train and test sets will be saved as pickle files.
+    :type path_mkdir: str
+    :return: A tuple containing lists of DataFrames representing the training and testing datasets for each fold.
+    :rtype: (list[pandas.DataFrame], list[pandas.DataFrame])
+
+    Note:
+    The function first converts the DataFrame into a numpy matrix where rows correspond to 'indfasta' (protein indices), 
+    columns to 'indsmiles' (drug indices), and cell values to 'score' (interaction score). Positive (interaction score = 1) 
+    and negative (interaction score = 0) interactions are identified and distributed into the folds. NaN values in 'score' 
+    are treated as unknown interactions and handled separately. The function then constructs balanced training and testing
+    datasets for each fold, ensuring that the same proportion of positive and negative interactions is maintained in both sets.
+  """
+
+  try : 
+    intMat = df.pivot(index='indfasta', columns="indsmiles", values='score').to_numpy(dtype=np.float16)
+  except:
+    intMat = df.pivot_table(index='indfasta', columns="indsmiles", values='score').to_numpy(dtype=np.float16)
+
+
+  # Set the different folds
+  skf_positive = KFold(shuffle=True, n_splits=nb_folds)
+
+  all_train_interactions_arr = []
+  all_test_interactions_arr = []
+
+  n_p,n_m = intMat.shape
+  Ip, Jm = np.where(intMat==1)
+  nb_positive_inter = int(len(Ip))
+  Inp, Jnm = np.where(intMat==0)
+  Inkp, Jnkm = np.where(np.isnan(intMat))
+
+  for train_index, test_index in skf_positive.split(range(nb_positive_inter)):
+      train_index = np.random.choice(train_index, int(len(train_index)), replace=False)
+
+      Mm, bin_edges = np.histogram(Ip[train_index], bins = range(n_p+1)) # np.array with  #interactions for each protein of the train at the beginning
+
+      Mp, bin_edges = np.histogram(Jm[train_index], bins = range(n_m+1)) # np.array with  #interactions for each drugs at the beginning (how manu time it can be chosen)
+
+      train = np.zeros([1,3], dtype=int)
+
+      nb_prot = len(list(set(Ip[train_index]))) # number of different prot in train
+      for i in range(nb_prot):
+
+          j = np.argmax(Mm) # choose protein with the maximum of interactions in the train
+
+          indice_P = Jm[train_index][np.where(Ip[train_index]==j)[0]]  #np.array with index of interactions + in train
+          indice_N = [k for k in Jm[train_index] if intMat[j][k]==0]
+          indice_NK = [k for k in Jm[train_index] if np.isnan(intMat[j][k])] #np.array  with index of interactions not known
+
+          indice_freq_mol = np.where(Mp>1)[0]  #drug's index with more than 2 interactions +
+          indice_poss_mol = np.where(Mp == 1)[0]  #drug's index with 1 interaction +
+
+          indice_freq_one_prot = np.intersect1d(indice_N, indice_freq_mol)
+          indice_poss_one_prot = np.intersect1d(indice_N, indice_poss_mol)
+
+          nb_positive_interactions = len(indice_P)
+          nb_frequent_hitters_negative_interactions = len(indice_freq_one_prot)
+
+          indice_freq_one_prot = np.intersect1d(indice_N, indice_freq_mol)
+          indice_poss_one_prot = np.intersect1d(indice_N, indice_poss_mol)
+          indice_freq_one_prot_NK = np.intersect1d(indice_NK, indice_freq_mol)
+          indice_poss_one_prot_NK = np.intersect1d(indice_NK, indice_poss_mol)
+
+          if len(indice_P) <= len(indice_freq_one_prot):
+              # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+              indice_N_one_prot = np.random.choice(indice_freq_one_prot,
+                                                  len(indice_P), replace = False)
+          elif len(indice_P) <= len(indice_freq_one_prot) + len(indice_poss_one_prot):
+              # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+              nb_negative_interactions_remaining = len(indice_P) - len(indice_freq_one_prot)
+              indice_N_one_prot_poss = np.random.choice(indice_poss_one_prot,
+                                                      nb_negative_interactions_remaining, replace = False )
+              indice_N_one_prot = np.concatenate((indice_freq_one_prot,
+                                              indice_N_one_prot_poss))
+          elif len(indice_P) <= len(indice_freq_one_prot) + len(indice_poss_one_prot) + len(indice_freq_one_prot_NK):
+              # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+              nb_negative_interactions_remaining = len(indice_P) - len(indice_freq_one_prot) - len(indice_poss_one_prot)
+              indice_N_one_prot_poss = np.random.choice(indice_freq_one_prot_NK,
+                                                      nb_negative_interactions_remaining, replace = False )
+              indice_N_one_prot = np.concatenate((indice_freq_one_prot,
+                                              indice_poss_one_prot, indice_N_one_prot_poss))
+          else:
+              # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+              nb_negative_interactions_remaining = len(indice_P) - len(indice_freq_one_prot) - len(indice_poss_one_prot) - len(indice_freq_one_prot_NK)
+              #print("nb_negative_interactions_remaining", nb_negative_interactions_remaining) # pas de solution...
+              #print(indice_poss_one_prot_NK.shape)
+              indice_N_one_prot_poss = np.random.choice(indice_poss_one_prot_NK,
+                                                      nb_negative_interactions_remaining, replace = False )
+              indice_N_one_prot = np.concatenate((indice_freq_one_prot,
+                                              indice_poss_one_prot, indice_freq_one_prot_NK, indice_N_one_prot_poss))
+
+          Mp[indice_N_one_prot.astype(int)]-=1
+
+          # this protein has been processed
+          Mm[j] = 0
+
+          indice = np.r_[indice_P,indice_N_one_prot].astype(int)
+          etiquette = [x if not np.isnan(x) else 0 for x in intMat[j][indice]]
+          A = np.stack((indice, etiquette), axis=-1)
+          B = np.c_[np.zeros(A.shape[0])+j,A].astype(int)
+          train = np.concatenate((train,B))
+
+      train = train[1:]
+      all_train_interactions_arr.append(train)
+      print("train", train.shape)
+
+      # test
+      test_index =  np.random.choice(test_index, int(len(test_index)), replace=False)
+      # interactions + in test
+      indice_P_t = np.c_[Ip[test_index],Jm[test_index], np.ones(len(test_index))].astype(int)
+
+      # interactions - in test
+      a = np.r_[np.c_[Inp,Jnm]] # all the zeros in the matrix (and NK ?)
+      a1 = set(map(tuple, a))
+      b = train[:,:2]   # all the interactions in the train
+      b1 = set(map(tuple, b))
+      indice_N_t = np.array(list(a1 - b1))#[:indice_P_t.shape[0],:] # we keep the same number of interactions - than interactions + in test, choosing the 0 in the matrix
+      #print(len(indice_N_t))
+
+      # add interactions np.nan in test
+
+      if len(indice_N_t) == 0:
+          # initialization
+          indice_N_t = np.array([-1, -1]).reshape(1,2)
+
+      c = np.r_[np.c_[Inkp,Jnkm]] # all the np.nan in the matrix
+
+      if len(indice_N_t) < indice_P_t.shape[0]:
+          # we add some interactions - in test to have the same number of interactions + and - in test choose in the np.nan in the matrix
+          k = 0
+          while len(indice_N_t) < indice_P_t.shape[0]+1:
+              i = np.random.randint(0, len(c))
+              if tuple(c[i]) not in b1:
+                  indice_N_t = np.concatenate((indice_N_t, c[i].reshape(1,2)))
+                  k += 1
+
+      # we drop the first row of indice_N_t if is [-1, -1]
+      if indice_N_t[0,0] == -1:
+          indice_N_t = indice_N_t[1:,:]
+
+      indice_N_t = indice_N_t[:len(indice_P_t),:]
+
+      # we add the column of 0 for the etiquette
+      indice_N_t = np.c_[indice_N_t, np.zeros(len(indice_N_t))].astype(int)
+      test = np.r_[indice_P_t,indice_N_t]
+
+      all_test_interactions_arr.append(test)
+      print("test", test.shape)
+
+  train_arr = []
+  for i in range(len(all_train_interactions_arr)):
+    df_train = pd.DataFrame(all_train_interactions_arr[i],columns=['indfasta','indsmiles','label'])
+    df_train_S = df_train.merge(df[["indfasta","fasta"]].drop_duplicates(),on="indfasta")
+    df_train_S = df_train_S.merge(df[["indsmiles","smiles"]].drop_duplicates(),on="indsmiles")
+    df_train_S = df_train_S[["smiles","fasta","label"]]
+    df_train_S.columns = ["SMILES","Target Sequence","Label"]
+    train_arr.append(df_train_S)
+
+  with open(path_mkdir+"/train_arr.pkl","wb") as f:
+    pickle.dump(train_arr,f)
+
+  test_arr = []
+  for i in range(len(all_test_interactions_arr)):
+    df_test = pd.DataFrame(all_test_interactions_arr[i],columns=['indfasta','indsmiles','label'])
+    df_test_S = df_test.merge(df[["indfasta","fasta"]].drop_duplicates(),on="indfasta")
+    df_test_S = df_test_S.merge(df[["indsmiles","smiles"]].drop_duplicates(),on="indsmiles")
+    df_test_S = df_test_S[["smiles","fasta","label"]]
+    df_test_S.columns = ["SMILES","Target Sequence","Label"]
+    test_arr.append(df_test_S)
+
+  with open(path_mkdir+"/test_arr.pkl","wb") as f:
+    pickle.dump(test_arr,f)
+
+  print("Train/test datasets prepared.")
+  return train_arr, test_arr
+
+def make_CV_train_test_S2(df,nb_folds,path_mkdir):
+  """
+    Splits the input DataFrame into cross-validation training and testing datasets, ensuring that the molecules in 
+    the test set are not present in the train set. The function performs K-fold cross-validation with the specified 
+    number of folds.
+
+    :param df: Input data containing the columns 'indfasta', 'indsmiles', and 'score'.
+    :type df: pandas.DataFrame
+    :param nb_folds: Number of folds for cross-validation.
+    :type nb_folds: int
+    :param path_mkdir: Path to the directory where the output train and test sets will be saved as pickle files.
+    :type path_mkdir: str
+    :return: A tuple containing lists of DataFrames representing the training and testing datasets for each fold.
+    :rtype: (list[pandas.DataFrame], list[pandas.DataFrame])
+
+    Note:
+    The function first converts the DataFrame into a numpy matrix where rows correspond to 'indfasta' (protein indices), 
+    columns to 'indsmiles' (drug indices), and cell values to 'score' (interaction score). Positive (interaction score = 1) 
+    and negative (interaction score = 0) interactions are identified and distributed into the folds. NaN values in 'score' 
+    are treated as unknown interactions and handled separately. The folds are created such that the molecules in the test 
+    set are not present in the train set.
+  """
+  # Convert the DataFrame to a numpy matrix
+  try : 
+    intMat = df.pivot(index='indfasta', columns="indsmiles", values='score').to_numpy(dtype=np.float16)
+  except:
+    intMat = df.pivot_table(index='indfasta', columns="indsmiles", values='score').to_numpy(dtype=np.float16)
+
+  # Set up cross-validation
+  all_train_interactions_arr = []
+  all_test_interactions_arr = []
+
+  n_p,n_m = intMat.shape
+  Ip, Jm = np.where(intMat==1)
+  Inp, Jnm = np.where(intMat==0)
+  Inkp, Jnkm = np.where(np.isnan(intMat))
+
+  groups = np.array(Jm) #folds are made on molecules
+  group_kfold = GroupKFold(n_splits=5)
+
+  nb_positive_inter = int(len(Ip))
+  
+  for train_index, test_index in group_kfold.split(range(nb_positive_inter), groups=groups):
+      # 9' pour train
+
+      Mm, bin_edges = np.histogram(Ip[train_index], bins = range(n_p+1)) # np.array with  #interactions for each protein of the train at the beginning
+
+      Mp, bin_edges = np.histogram(Jm[train_index], bins = range(n_m+1)) # np.array with  #interactions for each drugs at the beginning (how manu time it can be chosen)
+
+      train = np.zeros([1,3], dtype=int)
+
+      nb_prot = len(list(set(Ip[train_index]))) # number of different prot in train
+      for i in range(nb_prot):
+
+          j = np.argmax(Mm) # choose protein with the maximum of interactions in the train
+
+          indice_P = Jm[train_index][np.where(Ip[train_index]==j)[0]]  #np.array with index of interactions + in train
+          indice_N = [k for k in Jm[train_index] if intMat[j][k]==0]
+          indice_NK = [k for k in Jm[train_index] if np.isnan(intMat[j][k])] #np.array  with index of interactions not known
+
+          indice_freq_mol = np.where(Mp>1)[0]  #drug's index with more than 2 interactions +
+          indice_poss_mol = np.where(Mp == 1)[0]  #drug's index with 1 interaction +
+
+          indice_freq_one_prot = np.intersect1d(indice_N, indice_freq_mol)
+          indice_poss_one_prot = np.intersect1d(indice_N, indice_poss_mol)
+
+          nb_positive_interactions = len(indice_P)
+          nb_frequent_hitters_negative_interactions = len(indice_freq_one_prot)
+
+          indice_freq_one_prot = np.intersect1d(indice_N, indice_freq_mol)
+          indice_poss_one_prot = np.intersect1d(indice_N, indice_poss_mol)
+          indice_freq_one_prot_NK = np.intersect1d(indice_NK, indice_freq_mol)
+          indice_poss_one_prot_NK = np.intersect1d(indice_NK, indice_poss_mol)
+
+          if len(indice_P) <= len(indice_freq_one_prot):
+              # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+              indice_N_one_prot = np.random.choice(indice_freq_one_prot,
+                                                  len(indice_P), replace = False)
+          elif len(indice_P) <= len(indice_freq_one_prot) + len(indice_poss_one_prot):
+              # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+              nb_negative_interactions_remaining = len(indice_P) - len(indice_freq_one_prot)
+              indice_N_one_prot_poss = np.random.choice(indice_poss_one_prot,
+                                                      nb_negative_interactions_remaining, replace = False )
+              indice_N_one_prot = np.concatenate((indice_freq_one_prot,
+                                              indice_N_one_prot_poss))
+          elif len(indice_P) <= len(indice_freq_one_prot) + len(indice_poss_one_prot) + len(indice_freq_one_prot_NK):
+              # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+              nb_negative_interactions_remaining = len(indice_P) - len(indice_freq_one_prot) - len(indice_poss_one_prot)
+              indice_N_one_prot_poss = np.random.choice(indice_freq_one_prot_NK,
+                                                      nb_negative_interactions_remaining, replace = False )
+              indice_N_one_prot = np.concatenate((indice_freq_one_prot,
+                                              indice_poss_one_prot, indice_N_one_prot_poss))
+          else:
+              # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+              nb_negative_interactions_remaining = len(indice_P) - len(indice_freq_one_prot) - len(indice_poss_one_prot) - len(indice_freq_one_prot_NK)
+              #print("nb_negative_interactions_remaining", nb_negative_interactions_remaining) # pas de solution...
+              #print(indice_poss_one_prot_NK.shape)
+              indice_N_one_prot_poss = np.random.choice(indice_poss_one_prot_NK,
+                                                      nb_negative_interactions_remaining, replace = False )
+              indice_N_one_prot = np.concatenate((indice_freq_one_prot,
+                                              indice_poss_one_prot, indice_freq_one_prot_NK, indice_N_one_prot_poss))
+
+          Mp[indice_N_one_prot.astype(int)]-=1
+
+          # this protein has been processed
+          Mm[j] = 0
+
+          indice = np.r_[indice_P,indice_N_one_prot].astype(int)
+          etiquette = [x if not np.isnan(x) else 0 for x in intMat[j][indice]]
+          A = np.stack((indice, etiquette), axis=-1)
+          B = np.c_[np.zeros(A.shape[0])+j,A].astype(int)
+          train = np.concatenate((train,B))
+
+      train = train[1:]
+      all_train_interactions_arr.append(train)
+      print("train", train.shape)
+
+      ##### TEST ####
+      # interactions + in test
+      indice_P_t = np.c_[Ip[test_index],Jm[test_index], np.ones(len(test_index))].astype(int)
+      print("nb of interactions + in test",len(indice_P_t))
+      I_t = [i for i,elt in enumerate(indice_P_t) for x in train if elt[1]==x[1]]
+      print("number of interactions + deleted in test", len(set(I_t)))
+      indice_P_t = np.delete(indice_P_t, list(set(I_t)) ,axis = 0)
+      print("number of interactions + in test", len(indice_P_t))
+
+      # interactions - in test
+      a = np.r_[np.c_[Inp,Jnm]] # all the zeros in the matrix
+      print("number of interactions -", a.shape)
+      indice_N_t = np.array([-1, -1]).reshape(1,2)
+
+      S_a = np.random.permutation(len(a))
+      for i in S_a:
+            if  (a[i,1] not in train[:,1]): # we drop the interactions- in train and the prot in train
+                indice_N_t = np.concatenate((indice_N_t, a[i].reshape(1,2)))
+            if len(indice_N_t) == indice_P_t.shape[0] + 1:
+                i_end_a = i
+                print("i_end", i_end_a)
+                break
+        
+      # add interactions np.nan in test
+      c = np.r_[np.c_[Inkp,Jnkm]] # all the np.nan in the matrix
+      print("number of np.nan", c.shape)
+      S_c = np.random.permutation(len(c))
+
+      for i in S_c:
+            if (c[i,1] not in train[:,1]): # we drop the interactions- in train and the prot in train
+                indice_N_t = np.concatenate((indice_N_t, c[i].reshape(1,2)))
+            if len(indice_N_t) == indice_P_t.shape[0] + 1:
+                i_end_c = i
+                print("i_end", i_end_c)
+                break
+
+      indice_N_t = indice_N_t[:len(indice_P_t),:] #
+      print("number of interactions - in test",len(indice_N_t))
+      # we add the column of 0 for the etiquette
+      indice_N_t = np.c_[indice_N_t, np.zeros(len(indice_N_t))].astype(int)
+      test = np.r_[indice_P_t,indice_N_t]
+      print("test", test.shape)
+      all_test_interactions_arr.append(test)
+
+
+  train_arr = []
+  for i in range(len(all_train_interactions_arr)):
+    df_train = pd.DataFrame(all_train_interactions_arr[i],columns=['indfasta','indsmiles','label'])
+    df_train_S = df_train.merge(df[["indfasta","fasta"]].drop_duplicates(),on="indfasta")
+    df_train_S = df_train_S.merge(df[["indsmiles","smiles"]].drop_duplicates(),on="indsmiles")
+    df_train_S = df_train_S[["smiles","fasta","label"]]
+    df_train_S.columns = ["SMILES","Target Sequence","Label"]
+    train_arr.append(df_train_S)
+
+  with open(path_mkdir+"/train_arr.pkl","wb") as f:
+    pickle.dump(train_arr,f)
+
+  test_arr = []
+  for i in range(len(all_test_interactions_arr)):
+    df_test = pd.DataFrame(all_test_interactions_arr[i],columns=['indfasta','indsmiles','label'])
+    df_test_S = df_test.merge(df[["indfasta","fasta"]].drop_duplicates(),on="indfasta")
+    df_test_S = df_test_S.merge(df[["indsmiles","smiles"]].drop_duplicates(),on="indsmiles")
+    df_test_S = df_test_S[["smiles","fasta","label"]]
+    df_test_S.columns = ["SMILES","Target Sequence","Label"]
+    test_arr.append(df_test_S)
+
+  with open(path_mkdir+"/test_arr.pkl","wb") as f:
+    pickle.dump(test_arr,f)
+
+  print("Train/test datasets prepared.")
+  return train_arr, test_arr
+
+def make_CV_train_test_S3(df,nb_folds,path_mkdir):
+  """
+    Splits the input DataFrame into cross-validation training and testing datasets, ensuring that the proteins in 
+    the test set are not present in the train set. The function performs K-fold cross-validation with the specified 
+    number of folds.
+
+    :param df: Input data containing the columns 'indfasta', 'indsmiles', and 'score'.
+    :type df: pandas.DataFrame
+    :param nb_folds: Number of folds for cross-validation.
+    :type nb_folds: int
+    :param path_mkdir: Path to the directory where the output train and test sets will be saved as pickle files.
+    :type path_mkdir: str
+    :return: A tuple containing lists of DataFrames representing the training and testing datasets for each fold.
+    :rtype: (list[pandas.DataFrame], list[pandas.DataFrame])
+
+    Note:
+    The function first converts the DataFrame into a numpy matrix where rows correspond to 'indfasta' (protein indices), 
+    columns to 'indsmiles' (drug indices), and cell values to 'score' (interaction score). Positive (interaction score = 1) 
+    and negative (interaction score = 0) interactions are identified and distributed into the folds. NaN values in 'score' 
+    are treated as unknown interactions and handled separately. The folds are created such that the proteins in the test 
+    set are not present in the train set. The function returns the training and testing datasets for each fold as lists of
+    DataFrames.
+  """
+
+  try : 
+    intMat = df.pivot(index='indfasta', columns="indsmiles", values='score').to_numpy(dtype=np.float16)
+  except:
+    intMat = df.pivot_table(index='indfasta', columns="indsmiles", values='score').to_numpy(dtype=np.float16)
+
+  # Set the different folds
+
+  all_train_interactions_arr = []
+  all_test_interactions_arr = []
+
+  n_p,n_m = intMat.shape
+  Ip, Jm = np.where(intMat==1)
+
+  groups = np.array(Ip) #folds are made on proteins
+  group_kfold = GroupKFold(n_splits=nb_folds)
+
+  nb_positive_inter = int(len(Ip)) 
+  Inp, Jnm = np.where(intMat==0)
+  Inkp, Jnkm = np.where(np.isnan(intMat))
+
+  for train_index, test_index in group_kfold.split(range(nb_positive_inter), groups=groups):
+      # 9' pour train
+
+      Mm, bin_edges = np.histogram(Ip[train_index], bins = range(n_p+1)) # np.array with  #interactions for each protein of the train at the beginning
+
+      Mp, bin_edges = np.histogram(Jm[train_index], bins = range(n_m+1)) # np.array with  #interactions for each drugs at the beginning (how manu time it can be chosen)
+
+      train = np.zeros([1,3], dtype=int)
+
+      nb_prot = len(list(set(Ip[train_index]))) # number of different prot in train
+      for i in range(nb_prot):
+
+          j = np.argmax(Mm) # choose protein with the maximum of interactions in the train
+
+          indice_P = Jm[train_index][np.where(Ip[train_index]==j)[0]]  #np.array with index of interactions + in train
+          indice_N = [k for k in Jm[train_index] if intMat[j][k]==0]
+          indice_NK = [k for k in Jm[train_index] if np.isnan(intMat[j][k])] #np.array  with index of interactions not known
+
+          indice_freq_mol = np.where(Mp>1)[0]  #drug's index with more than 2 interactions +
+          indice_poss_mol = np.where(Mp == 1)[0]  #drug's index with 1 interaction +
+
+          indice_freq_one_prot = np.intersect1d(indice_N, indice_freq_mol)
+          indice_poss_one_prot = np.intersect1d(indice_N, indice_poss_mol)
+
+          nb_positive_interactions = len(indice_P)
+          nb_frequent_hitters_negative_interactions = len(indice_freq_one_prot)
+
+          indice_freq_one_prot = np.intersect1d(indice_N, indice_freq_mol)
+          indice_poss_one_prot = np.intersect1d(indice_N, indice_poss_mol)
+          indice_freq_one_prot_NK = np.intersect1d(indice_NK, indice_freq_mol)
+          indice_poss_one_prot_NK = np.intersect1d(indice_NK, indice_poss_mol)
+
+          if len(indice_P) <= len(indice_freq_one_prot):
+              # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+              indice_N_one_prot = np.random.choice(indice_freq_one_prot,
+                                                  len(indice_P), replace = False)
+          elif len(indice_P) <= len(indice_freq_one_prot) + len(indice_poss_one_prot):
+              # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+              nb_negative_interactions_remaining = len(indice_P) - len(indice_freq_one_prot)
+              indice_N_one_prot_poss = np.random.choice(indice_poss_one_prot,
+                                                      nb_negative_interactions_remaining, replace = False )
+              indice_N_one_prot = np.concatenate((indice_freq_one_prot,
+                                              indice_N_one_prot_poss))
+          elif len(indice_P) <= len(indice_freq_one_prot) + len(indice_poss_one_prot) + len(indice_freq_one_prot_NK):
+              # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+              nb_negative_interactions_remaining = len(indice_P) - len(indice_freq_one_prot) - len(indice_poss_one_prot)
+              indice_N_one_prot_poss = np.random.choice(indice_freq_one_prot_NK,
+                                                      nb_negative_interactions_remaining, replace = False )
+              indice_N_one_prot = np.concatenate((indice_freq_one_prot,
+                                              indice_poss_one_prot, indice_N_one_prot_poss))
+          else:
+              # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+              nb_negative_interactions_remaining = len(indice_P) - len(indice_freq_one_prot) - len(indice_poss_one_prot) - len(indice_freq_one_prot_NK)
+              #print("nb_negative_interactions_remaining", nb_negative_interactions_remaining) # pas de solution...
+              #print(indice_poss_one_prot_NK.shape)
+              indice_N_one_prot_poss = np.random.choice(indice_poss_one_prot_NK,
+                                                      nb_negative_interactions_remaining, replace = False )
+              indice_N_one_prot = np.concatenate((indice_freq_one_prot,
+                                              indice_poss_one_prot, indice_freq_one_prot_NK, indice_N_one_prot_poss))
+
+          Mp[indice_N_one_prot.astype(int)]-=1
+
+          # this protein has been processed
+          Mm[j] = 0
+
+          indice = np.r_[indice_P,indice_N_one_prot].astype(int)
+          etiquette = [x if not np.isnan(x) else 0 for x in intMat[j][indice]]
+          A = np.stack((indice, etiquette), axis=-1)
+          B = np.c_[np.zeros(A.shape[0])+j,A].astype(int)
+          train = np.concatenate((train,B))
+
+      train = train[1:]
+      all_train_interactions_arr.append(train)
+      print("train", train.shape)
+
+      ##### TEST ####
+      # interactions + in test
+      indice_P_t = np.c_[Ip[test_index],Jm[test_index], np.ones(len(test_index))].astype(int)
+      print("nb of interactions + in test",len(indice_P_t))
+      I_t = [i for i,elt in enumerate(indice_P_t) for x in train if elt[0]==x[0]]
+      print("number of interactions + deleted in test", len(set(I_t)))
+      indice_P_t = np.delete(indice_P_t, list(set(I_t)) ,axis = 0)
+      print("number of interactions + in test", len(indice_P_t))
+
+      # interactions - in test
+      a = np.r_[np.c_[Inp,Jnm]] # all the zeros in the matrix
+      print("number of interactions -", a.shape)
+      indice_N_t = np.array([-1, -1]).reshape(1,2)
+
+      S_a = np.random.permutation(len(a))
+      for i in S_a:
+        if (a[i,0] not in train[:,0]): # we drop the interactions- in train and the prot in train
+            indice_N_t = np.concatenate((indice_N_t, a[i].reshape(1,2)))
+        if len(indice_N_t) == indice_P_t.shape[0] + 1:
+            i_end_a = i
+            print("i_end", i_end_a)
+            break
+    
+      # add interactions np.nan in test
+      c = np.r_[np.c_[Inkp,Jnkm]] # all the np.nan in the matrix
+      print("number of np.nan", c.shape)
+      S_c = np.random.permutation(len(c))
+
+      for i in S_c:
+        if (c[i,0] not in train[:,0]): # we drop the interactions- in train and the prot in train
+            indice_N_t = np.concatenate((indice_N_t, c[i].reshape(1,2)))
+        if len(indice_N_t) == indice_P_t.shape[0] + 1:
+            i_end_c = i
+            print("i_end", i_end_c)
+            break
+
+      indice_N_t = indice_N_t[:len(indice_P_t),:] #
+      print("number of interactions - in test",len(indice_N_t))
+      # we add the column of 0 for the etiquette
+      indice_N_t = np.c_[indice_N_t, np.zeros(len(indice_N_t))].astype(int)
+      test = np.r_[indice_P_t,indice_N_t]
+      print("test", test.shape)
+      all_test_interactions_arr.append(test)
+
+  train_arr = []
+  for i in range(len(all_train_interactions_arr)):
+    df_train = pd.DataFrame(all_train_interactions_arr[i],columns=['indfasta','indsmiles','label'])
+    df_train_S = df_train.merge(df[["indfasta","fasta"]].drop_duplicates(),on="indfasta")
+    df_train_S = df_train_S.merge(df[["indsmiles","smiles"]].drop_duplicates(),on="indsmiles")
+    df_train_S = df_train_S[["smiles","fasta","label"]]
+    df_train_S.columns = ["SMILES","Target Sequence","Label"]
+    train_arr.append(df_train_S)
+
+  with open(path_mkdir+"train_arr.pkl","wb") as f:
+    pickle.dump(train_arr,f)
+
+  test_arr = []
+  for i in range(len(all_test_interactions_arr)):
+    df_test = pd.DataFrame(all_test_interactions_arr[i],columns=['indfasta','indsmiles','label'])
+    df_test_S = df_test.merge(df[["indfasta","fasta"]].drop_duplicates(),on="indfasta")
+    df_test_S = df_test_S.merge(df[["indsmiles","smiles"]].drop_duplicates(),on="indsmiles")
+    df_test_S = df_test_S[["smiles","fasta","label"]]
+    df_test_S.columns = ["SMILES","Target Sequence","Label"]
+    test_arr.append(df_test_S)
+
+  with open(path_mkdir+"test_arr.pkl","wb") as f:
+    pickle.dump(test_arr,f)
+
+  print("Train/test datasets prepared.")
+  return train_arr, test_arr
+
+def make_CV_train_test_S4(df,nb_folds,path_mkdir):
+    """
+    Splits the input DataFrame into cross-validation training and testing datasets, ensuring that the proteins 
+    and molecules in the test set are not present in the train set. The function performs K-fold cross-validation 
+    with the specified number of folds.
+
+    :param df: Input data containing the columns 'indfasta', 'indsmiles', and 'score'.
+    :type df: pandas.DataFrame
+    :param nb_folds: Number of folds for cross-validation.
+    :type nb_folds: int
+    :param path_mkdir: Path to the directory where the output train and test sets will be saved as pickle files.
+    :type path_mkdir: str
+    :return: A tuple containing lists of DataFrames representing the training and testing datasets for each fold.
+    :rtype: (list[pandas.DataFrame], list[pandas.DataFrame])
+
+    Note:
+    The function first converts the DataFrame into a numpy matrix where rows correspond to 'indfasta' (protein indices), 
+    columns to 'indsmiles' (drug indices), and cell values to 'score' (interaction score). Positive (interaction score = 1) 
+    and negative (interaction score = 0) interactions are identified and distributed into the folds. NaN values in 'score' 
+    are treated as unknown interactions and handled separately. The folds are created such that the proteins and molecules 
+    in the test set are not present in the train set.
+    """
+    try : 
+        intMat = df.pivot(index='indfasta', columns="indsmiles", values='score').to_numpy(dtype=np.float16)
+    except:
+        intMat = df.pivot_table(index='indfasta', columns="indsmiles", values='score').to_numpy(dtype=np.float16)
+
+    n_p,n_m = intMat.shape
+    Ip, Jm = np.where(intMat==1)
+    Inp, Jnm = np.where(intMat==0)
+    Inkp, Jnkm = np.where(np.isnan(intMat))
+
+    nP = df[["indfasta"]].drop_duplicates().reset_index().shape[0]
+    nM = df[["indsmiles"]].drop_duplicates().reset_index().shape[0]
+
+    all_train_interactions_arr = []
+    all_test_interactions_arr = []
+
+    for i in range(nb_folds):
+
+        SP = np.random.permutation(nP)
+        SM = np.random.permutation(nM)
+
+        groups = []
+        for ip,im in zip(Ip,Jm):
+            if (ip in SP[:int(0.6*nP)]) and (im in SM[:int(0.7*nM)]):
+                groups.append(0)
+            elif (ip in SP[int(0.6*nP):]) and (im in SM[int(0.7*nM):]):
+                groups.append(1)
+            elif (ip in SP[:int(0.6*nP)]) and (im in SM[int(0.7*nM):]):
+                groups.append(2)
+            else:
+                groups.append(3)
+        # je voudrais faire qu'avec (1 dans le train) et (2 dans le test) mais je ne sais pas comment faire
+        train_index = np.where(np.array(groups)==0)[0]
+        test_index = np.where(np.array(groups)==1)[0]
+
+        #Inp, Jnm = np.where(intMat==0)
+        #Inkp, Jnkm = np.where(np.isnan(intMat))
+
+        Mm, bin_edges = np.histogram(Ip[train_index], bins = range(n_p+1)) # np.array with  #interactions for each protein of the train at the beginning
+
+        Mp, bin_edges = np.histogram(Jm[train_index], bins = range(n_m+1)) # np.array with  #interactions for each drugs at the beginning (how manu time it can be chosen)
+
+        train = np.zeros([1,3], dtype=int)
+
+        nb_prot = len(list(set(Ip[train_index]))) # number of different prot in train
+        for i in range(nb_prot):
+
+            j = np.argmax(Mm) # choose protein with the maximum of interactions in the train
+
+            indice_P = Jm[train_index][np.where(Ip[train_index]==j)[0]]  #np.array with index of interactions + in train
+            indice_N = [k for k in Jm[train_index] if intMat[j][k]==0]
+            indice_NK = [k for k in Jm[train_index] if np.isnan(intMat[j][k])] #np.array  with index of interactions not known
+
+            indice_freq_mol = np.where(Mp>1)[0]  #drug's index with more than 2 interactions +
+            indice_poss_mol = np.where(Mp == 1)[0]  #drug's index with 1 interaction +
+
+            indice_freq_one_prot = np.intersect1d(indice_N, indice_freq_mol)
+            indice_poss_one_prot = np.intersect1d(indice_N, indice_poss_mol)
+
+            nb_positive_interactions = len(indice_P)
+            nb_frequent_hitters_negative_interactions = len(indice_freq_one_prot)
+
+            indice_freq_one_prot = np.intersect1d(indice_N, indice_freq_mol)
+            indice_poss_one_prot = np.intersect1d(indice_N, indice_poss_mol)
+            indice_freq_one_prot_NK = np.intersect1d(indice_NK, indice_freq_mol)
+            indice_poss_one_prot_NK = np.intersect1d(indice_NK, indice_poss_mol)
+
+            if len(indice_P) <= len(indice_freq_one_prot):
+                # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+                indice_N_one_prot = np.random.choice(indice_freq_one_prot,
+                                                    len(indice_P), replace = False)
+            elif len(indice_P) <= len(indice_freq_one_prot) + len(indice_poss_one_prot):
+                # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+                nb_negative_interactions_remaining = len(indice_P) - len(indice_freq_one_prot)
+                indice_N_one_prot_poss = np.random.choice(indice_poss_one_prot,
+                                                        nb_negative_interactions_remaining, replace = False )
+                indice_N_one_prot = np.concatenate((indice_freq_one_prot,
+                                                indice_N_one_prot_poss))
+            elif len(indice_P) <= len(indice_freq_one_prot) + len(indice_poss_one_prot) + len(indice_freq_one_prot_NK):
+                # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+                nb_negative_interactions_remaining = len(indice_P) - len(indice_freq_one_prot) - len(indice_poss_one_prot)
+                indice_N_one_prot_poss = np.random.choice(indice_freq_one_prot_NK,
+                                                        nb_negative_interactions_remaining, replace = False )
+                indice_N_one_prot = np.concatenate((indice_freq_one_prot,
+                                                indice_poss_one_prot, indice_N_one_prot_poss))
+            else:
+                # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+                nb_negative_interactions_remaining = len(indice_P) - len(indice_freq_one_prot) - len(indice_poss_one_prot) - len(indice_freq_one_prot_NK)
+                #print("nb_negative_interactions_remaining", nb_negative_interactions_remaining) # pas de solution...
+                #print(indice_poss_one_prot_NK.shape)
+                indice_N_one_prot_poss = np.random.choice(indice_poss_one_prot_NK,
+                                                        nb_negative_interactions_remaining, replace = False )
+                indice_N_one_prot = np.concatenate((indice_freq_one_prot,
+                                                indice_poss_one_prot, indice_freq_one_prot_NK, indice_N_one_prot_poss))
+
+            Mp[indice_N_one_prot.astype(int)]-=1
+
+            # this protein has been processed
+            Mm[j] = 0
+
+            indice = np.r_[indice_P,indice_N_one_prot].astype(int)
+            etiquette = [x if not np.isnan(x) else 0 for x in intMat[j][indice]]
+            A = np.stack((indice, etiquette), axis=-1)
+            B = np.c_[np.zeros(A.shape[0])+j,A].astype(int)
+            train = np.concatenate((train,B))
+
+        train = train[1:]
+        #with open('data/train_prot_mol_orphan.data', 'wb') as f:
+        #    pickle.dump(train, f)
+        all_train_interactions_arr.append(train)
+        print("train", train.shape)
+
+        ##### TEST ####
+        # interactions + in test
+        indice_P_t = np.c_[Ip[test_index],Jm[test_index], np.ones(len(test_index))].astype(int)
+        print("nb of interactions + in test",len(indice_P_t))
+        I_t = [i for i,elt in enumerate(indice_P_t) for x in train if elt[0]==x[0] or elt[1]==x[1]]
+        print("number of interactions + deleted in test", len(set(I_t)))
+        indice_P_t = np.delete(indice_P_t, list(set(I_t)) ,axis = 0)
+        print("number of interactions + in test", len(indice_P_t))
+
+        # interactions - in test
+        a = np.r_[np.c_[Inp,Jnm]] # all the zeros in the matrix
+        print("number of interactions -", a.shape)
+        indice_N_t = np.array([-1, -1]).reshape(1,2)
+
+        S_a = np.random.permutation(len(a))
+        for i in S_a:
+            if (a[i,0] not in train[:,0]) and (a[i,1] not in train[:,1]): # we drop the interactions- in train and the prot in train
+                indice_N_t = np.concatenate((indice_N_t, a[i].reshape(1,2)))
+            if len(indice_N_t) == indice_P_t.shape[0] + 1:
+                i_end_a = i
+                print("i_end", i_end_a)
+                break
+        
+        # add interactions np.nan in test
+        c = np.r_[np.c_[Inkp,Jnkm]] # all the np.nan in the matrix
+        print("number of np.nan", c.shape)
+        S_c = np.random.permutation(len(c))
+
+        for i in S_c:
+            if (c[i,0] not in train[:,0]) and (c[i,1] not in train[:,1]): # we drop the interactions- in train and the prot in train
+                indice_N_t = np.concatenate((indice_N_t, c[i].reshape(1,2)))
+            if len(indice_N_t) == indice_P_t.shape[0] + 1:
+                i_end_c = i
+                print("i_end", i_end_c)
+                break
+
+        indice_N_t = indice_N_t[:len(indice_P_t),:] #
+        print("number of interactions - in test",len(indice_N_t))
+        # we add the column of 0 for the etiquette
+        indice_N_t = np.c_[indice_N_t, np.zeros(len(indice_N_t))].astype(int)
+        test = np.r_[indice_P_t,indice_N_t]
+        print("test", test.shape)
+        all_test_interactions_arr.append(test)
+        
+    train_arr = []
+    for i in range(len(all_train_interactions_arr)):
+        df_train = pd.DataFrame(all_train_interactions_arr[i],columns=['indfasta','indsmiles','label'])
+        df_train_S = df_train.merge(df[["indfasta","fasta"]].drop_duplicates(),on="indfasta")
+        df_train_S = df_train_S.merge(df[["indsmiles","smiles"]].drop_duplicates(),on="indsmiles")
+        df_train_S = df_train_S[["smiles","fasta","label"]]
+        df_train_S.columns = ["SMILES","Target Sequence","Label"]
+        train_arr.append(df_train_S)
+
+    with open(path_mkdir+"train_arr.pkl","wb") as f:
+        pickle.dump(train_arr,f)
+
+    test_arr = []
+    for i in range(len(all_test_interactions_arr)):
+        df_test = pd.DataFrame(all_test_interactions_arr[i],columns=['indfasta','indsmiles','label'])
+        df_test_S = df_test.merge(df[["indfasta","fasta"]].drop_duplicates(),on="indfasta")
+        df_test_S = df_test_S.merge(df[["indsmiles","smiles"]].drop_duplicates(),on="indsmiles")
+        df_test_S = df_test_S[["smiles","fasta","label"]]
+        df_test_S.columns = ["SMILES","Target Sequence","Label"]
+        test_arr.append(df_test_S)
+
+    with open(path_mkdir+"test_arr.pkl","wb") as f:
+        pickle.dump(test_arr,f)
+
+    print("Train/test datasets prepared.")
+    return train_arr, test_arr
 
 def process_LCIdb(name_file, data_dir = "./", max_length_fasta = 1000, bioactivity_choice = "checkand1database",min_weight = 100, max_weight = 900,  interaction_plus = 1e-7, interaction_minus = 1e-4):
     """
