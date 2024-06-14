@@ -1390,6 +1390,28 @@ def process_LCIdb(name_file, data_dir = "./", max_length_fasta = 1000, bioactivi
             return 0.5
         else:
             return 0
+        
+    def calcul_score_mean_2(i,x):
+        m = "min "+x
+        M = "max "+x
+        moy = "mean "+x
+        if (df.loc[i,moy] >= score_plus):
+            if (df.loc[i,M] - df.loc[i,m])<= 1:
+                return 1
+            elif df.loc[i,m] >= score_plus:
+                return 1
+            else:
+                return 0.5
+        elif df.loc[i,moy] <= score_minus:
+            if (df.loc[i,M] - df.loc[i,m])<= 1:
+                return 0
+            elif df.loc[i,M] <= score_minus:
+                return 0
+            else:
+                return 0.5 
+        else:
+            return 0.5
+
 
     def calcul_score_minMax(i,x):
         m = "min "+x
@@ -1400,16 +1422,16 @@ def process_LCIdb(name_file, data_dir = "./", max_length_fasta = 1000, bioactivi
             return 0
         else:
             return 0.5
-
-    def f_score(i):
+            
+    def f_score_2(i):
         # If a given compound and protein target have multiple measurements of different types,
         # we choose them in the following order of preference: Kd over Ki over IC50.
         if not np.isnan(df.loc[i,"mean pKd"]):
-            return calcul_score_mean(df.loc[i,"mean pKd"])
+            return calcul_score_mean_2(i,"pKd")
         elif not np.isnan(df.loc[i,"mean pKi"]):
-            return calcul_score_mean(df.loc[i,"mean pKi"])
+            return calcul_score_mean_2(i,"pKi")
         elif not np.isnan(df.loc[i,"mean pIC50"]):
-            return calcul_score_mean(df.loc[i,"mean pIC50"])
+            return calcul_score_mean_2(i,"pIC50")
         else:
             if not np.isnan(df.loc[i,"min pKd"]):
                 return calcul_score_minMax(i,"pKd")
@@ -1420,7 +1442,7 @@ def process_LCIdb(name_file, data_dir = "./", max_length_fasta = 1000, bioactivi
             else:
                 return np.nan
 
-    df['score'] = list(map(lambda i: f_score(i), df.index))
+    df['score'] = list(map(lambda i: f_score_2(i), df.index))
     print("score calculé")
     print("df.shape = ",df.shape)
 
