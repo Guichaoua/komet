@@ -15,6 +15,7 @@ from sklearn import svm
 import time
 
 import psutil
+import os
 
 from sklearn.metrics import average_precision_score, roc_curve, confusion_matrix, auc
 
@@ -976,7 +977,6 @@ def make_train_test_val_S3(df):
 
     return train,test,val
 
-
 def make_train_test_val_S4(df):
     """
     Splits the interaction matrix into balanced training, testing, and validation sets ensuring there is no 
@@ -1197,7 +1197,7 @@ def make_train_test_val_S4(df):
 
     return train,test,val
 
-def make_CV_train_test_S1(df,nb_folds,path_mkdir):
+def make_CV_train_test_full(df,nb_folds,path_mkdir):
   """
     Splits the input DataFrame into cross-validation training and testing datasets, ensuring the same proportion 
     of positive (interaction score = 1) and negative (interaction score = 0) interactions in each set. The function 
@@ -1383,7 +1383,7 @@ def make_CV_train_test_S1(df,nb_folds,path_mkdir):
   print("Train/test datasets prepared.")
   return train_arr, test_arr
 
-def make_CV_train_test_S2(df,nb_folds,path_mkdir):
+def make_CV_train_test_unseen_drug(df,nb_folds,path_mkdir):
   """
     Splits the input DataFrame into cross-validation training and testing datasets, ensuring that the molecules in 
     the test set are not present in the train set. The function performs K-fold cross-validation with the specified 
@@ -1572,7 +1572,7 @@ def make_CV_train_test_S2(df,nb_folds,path_mkdir):
   print("Train/test datasets prepared.")
   return train_arr, test_arr
 
-def make_CV_train_test_S3(df,nb_folds,path_mkdir):
+def make_CV_train_test_unseen_target(df,nb_folds,path_mkdir):
   """
     Splits the input DataFrame into cross-validation training and testing datasets, ensuring that the proteins in 
     the test set are not present in the train set. The function performs K-fold cross-validation with the specified 
@@ -1762,7 +1762,7 @@ def make_CV_train_test_S3(df,nb_folds,path_mkdir):
   print("Train/test datasets prepared.")
   return train_arr, test_arr
 
-def make_CV_train_test_S4(df,nb_folds,path_mkdir):
+def make_CV_train_test_Orphan(df,nb_folds,path_mkdir):
     """
     Splits the input DataFrame into cross-validation training and testing datasets, ensuring that the proteins 
     and molecules in the test set are not present in the train set. The function performs K-fold cross-validation 
@@ -1966,6 +1966,87 @@ def make_CV_train_test_S4(df,nb_folds,path_mkdir):
 
     print("Train/test datasets prepared.")
     return train_arr, test_arr
+
+def make_CV_train_test(load_data,S,save_data):
+    """
+    Loads the interaction data from a CSV file, preprocesses the data to generate numerical indices for unique 
+    smiles (molecules) and fasta (proteins), and splits the data into cross-validation training and testing datasets 
+    based on the specified split type.
+
+    :param load_data: Path to the input CSV file containing the interaction data : LCIdb_v2.csv (or after process_LCIdb with other thresholds) or Chembl.csv
+    :type load_data: str
+    :param S: Specifies the split type, which determines how the training and testing datasets are created. 
+              Options are "full" (S1), "unseen_drug" (S2), "unseen_target" (S3), and "Orphan" (S4).
+    :type S: str
+    :param save_data: Path to the directory where the output train and test sets will be saved.
+    :type save_data: str
+    :return: A tuple containing lists of DataFrames representing the training and testing datasets for each fold.
+
+    Note:
+    The function preprocesses the input data to create unique numerical indices for each unique molecule and 
+    protein, which are then used to create a pivot table representing the interaction matrix. The data is split 
+    into training and testing sets using the appropriate split function based on the specified split type (full, unseen_drug, 
+    unseen_target, Orphan)
+    """
+
+    df = pd.read_csv(load_data,low_memory=False)
+    try:
+        df.rename(columns={'standardized smiles':'smiles'}, inplace=True)
+    except:
+        pass
+    df_p = df[(df['score'] == 1)]
+    df2 = df_p
+
+    # give number to all smiles we keep and all fasta we keep (ie int +)
+    # make dict smiles2ind and dict ind2smiles
+    df_sm = df2[["smiles"]].drop_duplicates().reset_index()
+    #df_sm = df_p[["standardized smiles"]].drop_duplicates().reset_index()
+    df_sm.drop(columns=["index"],inplace=True)
+    dict_ind2smiles = df_sm.to_dict()["smiles"]
+    #dict_ind2smiles = df_sm.to_dict()["standardized smiles"]
+    print("nombre de smiles: ",len(dict_ind2smiles))
+    dict_smiles2ind = {v: k for k, v in dict_ind2smiles.items()}
+
+    df_prot = df2[["fasta"]].drop_duplicates().reset_index()
+    df_prot.drop(columns=["index"],inplace=True)
+    dict_ind2fasta = df_prot.to_dict()["fasta"]
+    print("nombre de fasta: ",len(dict_ind2fasta))
+    dict_fasta2ind = {v: k for k, v in dict_ind2fasta.items()}
+
+    # add this number to df
+    #df["indsmiles"] = df["standardized smiles"].map(dict_smiles2ind)
+    df["indsmiles"] = df["smiles"].map(dict_smiles2ind)
+    df["indfasta"] = df["fasta"].map(dict_fasta2ind)
+
+    # we drop when indsmiles is Nan
+    indsmiles_index_with_nan = df.index[df.loc[:,"indsmiles"].isnull()]
+    df = df.drop(indsmiles_index_with_nan,0)
+    # we drop when indfasta is Nan
+    indfasta_index_with_nan = df.index[df.loc[:,"indfasta"].isnull()]
+    df = df.drop(indfasta_index_with_nan,0)
+
+    intMat = df.pivot(index='indfasta', columns="indsmiles", values='score').to_numpy(dtype=np.float16)
+    print("matrice d'interactions: ",intMat.shape)
+    
+    if S == "full":
+        if not os.path.exists(save_data+"/full_data"):
+            os.makedirs(save_data+"/full_data")
+        all_train_interactions_arr, all_test_interactions_arr = make_CV_train_test_full(df,5,save_data+"/full_data")
+    elif S == "unseen_drug":
+        if not os.path.exists(save_data+"/unseen_drug"):
+            os.makedirs(save_data+"/unseen_drug")
+        all_train_interactions_arr, all_test_interactions_arr = make_CV_train_test_unseen_drug(df,5,save_data+"/unseen_drug")
+        
+    elif S == "unseen_target":
+        if not os.path.exists(save_data+"/unseen_target"):
+            os.makedirs(save_data+"/unseen_target")
+        all_train_interactions_arr, all_test_interactions_arr = make_CV_train_test_unseen_target(df,5,save_data+"/unseen_target")
+    elif S == "Orphan":
+        if not os.path.exists(save_data+"/Orphan"):
+            os.makedirs(save_data+"/Orphan")
+        all_train_interactions_arr, all_test_interactions_arr = make_CV_train_test(df,5,save_data+"Orphan")    
+    print("Train datasets prepared.")
+    return all_train_interactions_arr, all_test_interactions_arr
 
 def process_LCIdb(name_file, data_dir = "./", max_length_fasta = 1000, bioactivity_choice = "checkand1database",min_weight = 100, max_weight = 900,  interaction_plus = 1e-7, interaction_minus = 1e-4):
     """
