@@ -2438,3 +2438,142 @@ def MT_komet(name_data_set,lambda_list,mM,dM):
         df.loc[i] = l_info
     
     return df
+
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, roc_curve, auc, average_precision_score
+
+def ST_SVM(name_data_set,mM,dM,lbda):
+    """
+    Trains and tests a single-task SVM model on a specified dataset using molecular and protein features.
+    The function uses protein and molecule kernels, computes features, and evaluates the model's performance.
+
+    :param name_data_set: Name of the dataset directory within the data directory.
+    :type name_data_set: str
+    :param mM: Number of molecules to use for the Nystrom approximation.
+    :type mM: int
+    :param dM: Final dimension of features for molecules.
+    :type dM: int
+    :param lbda: Regularization parameter for the SVM model.
+    :type lbda: float
+    :return: DataFrame with the evaluation metrics for each protein.
+    :rtype: pandas.DataFrame
+
+    Note:
+    This function expects precomputed protein kernels and dictionaries mapping protein sequences to indices.
+    It uses Morgan fingerprints for molecule features and applies Nystrom approximation to the molecule kernel.
+    The protein features are computed using SVD. The function trains the SVM model and evaluates it on a test set.
+    """
+    
+    data_dir = './data/'
+    dataset_dir = data_dir + name_data_set
+
+    # Load Protein kernel and dictionary of index
+    dict_ind2fasta_all = pickle.load(open(data_dir + "dict_ind2fasta_all.data", 'rb'))
+    dict_fasta2ind_all = {fasta:ind for ind,fasta in dict_ind2fasta_all.items()}
+    with open(data_dir + "dict_ind2fasta_all_K_prot.data", 'rb') as f:
+        KP_all = pickle.load(f)
+    KP_all.shape, type(KP_all)
+
+    with open(dataset_dir +"/train_arr.pkl","rb") as f:
+        arr_train = pickle.load(f)
+    with open(dataset_dir +"/test_arr.pkl","rb") as f:
+        arr_test = pickle.load(f)
+    
+    full= arr_train[0]
+       
+    #### MOLECULE####
+    list_smiles = full[['SMILES']].drop_duplicates().values.flatten()
+    nM = len(list_smiles)
+    #print("number of different smiles (mol):",nM)
+
+    # add indsmiles in train, val, test
+    dict_smiles2ind = {list_smiles[i]:i for i in range(nM)}
+
+    # molecule kernel_first step : compute Morgan FP for each smiles of all the dataset
+    MorganFP = Morgan_FP(list_smiles)
+
+    # In case there are less molecules than the number of molecules to compute the Nystrom approximation
+    mM = min(mM,nM) # number of molecule to compute nystrom
+    dM = min(dM,nM) # final dimension of features for molecules
+
+    # compute the Nystrom approximation of the mol kernel and the features of the Kronecker kernel (features normalized and calculated on all mol contained in the dataset (train/val/test))
+    X_cn = Nystrom_X_cn(mM,dM,nM,MorganFP)
+    #print("mol features shape",X_cn.shape)
+
+    #### PROTEIN####
+    # Index of the protein in the dataset
+    fasta = full[['Target Sequence']].drop_duplicates().values.flatten() # fasta sequence on the dataset, in the same order as the dataset
+    #print("number of different Fasta (protein):",len(fasta))
+    I_fasta = [int(dict_fasta2ind_all[fasta[i]]) for i in range(len(fasta))] # index of fasta in the precomputed dict and protein kernel, in the same order as the dataset
+    KP = KP_all[I_fasta,:][:,I_fasta]
+    KP = torch.tensor(KP, dtype=mytype).to(device)
+    print("kernel prot shape",KP.shape)
+
+    # computation of feature for protein (no nystrom, just SVD)
+    rP = KP.shape[0]#min(KP.shape[0],500)
+    U, Lambda, VT = torch.svd(KP)
+    Y = U[:,:rP] @ torch.diag(torch.sqrt(Lambda[:rP]))
+
+    # nomramlisation of the features
+    Y_c = Y - Y.mean(axis = 0)
+    Y_cn = Y_c / torch.norm(Y_c,dim = 1)[:,None]
+    print("protein features shape",Y.shape)
+
+    df = pd.DataFrame(columns=['Target','family','nb_test_0','nb_test_1','sim_K','nearest_prot_K','family_K','nb_train_0','nb_train_1','au_PR','au_Roc','acc','lbda'])
+    try : 
+        df_family = pd.read_csv(data_dir+"fasta_uniprot_family.csv")
+    except:
+        print("No family file")
+
+    for i in range(len(fasta)):
+        l_info = []
+        l_info+= [df_family[df_family['fasta']==fasta[i]]['Target'].values[0],df_family[df_family['fasta']==fasta[i]]['family'].values[0]]
+
+        #df_test : only DTI known in full
+        df_test = full[full['Target Sequence'] == fasta[i]]
+        l_info.append(len(df_test[df_test['Label']==1]))
+        l_info.append(len(df_test[df_test['Label']==0]))
+
+        # we search the nearest protein in the dataset
+        sim = np.dot(Y_cn[i],Y_cn.T)
+        I_prot = np.argsort(sim, kind='stable')[-2:]
+        l_info.append(sim[I_prot[0]])
+        l_info+= [df_family[df_family['fasta']==fasta[I_prot[0]]]['Target'].values[0],df_family[df_family['fasta']==fasta[I_prot[0]]]['family'].values[0]]
+        
+        df_train = full[full['Target Sequence'] == fasta[I_prot[0]]]
+        l_info.append(len(df_train[df_train['Label']==1]))
+        l_info.append(len(df_train[df_train['Label']==0]))
+
+        # we add indices in df_test and df_train
+        df_test['indfasta'] = i
+        df_train['indfasta'] = I_prot[0]
+
+        # we add indices in df_test and df_train
+        df_test['indsmiles'] = df_test['SMILES'].apply(lambda x:dict_smiles2ind[x] )
+        df_train['indsmiles'] = df_train['SMILES'].apply(lambda x:dict_smiles2ind[x] )
+
+        X = X_cn[df_train["indsmiles"].values]
+        y = df_train["Label"].values
+
+        C_train = 1/(len(y)*lbda)
+        clf = SVC(probability=True,C = C_train)  #hyperparameter to be tuned
+
+        clf.fit(X, y)
+        X_test = X_cn[df_test["indsmiles"].values].detach().numpy()
+        y_test = df_test["Label"].values
+        y_pred = clf.predict(X_test)
+        #accuracy
+        acc1 = accuracy_score(y_test, y_pred)
+        y_proba = clf.predict_proba(X_test)
+        # print(classification_report(y_test, y_pred))
+        #auc
+        fpr, tpr, thresholds = roc_curve(y_test,y_proba[:,1])
+        auc_score = auc(fpr,tpr)
+        #aupr
+        average_precision = average_precision_score(y_test,y_proba[:,1])
+            
+        l_info.append(average_precision,auc_score,acc1)
+        l_info.append(lbda)
+        # rajouter une ligne dans le dataframe
+        df.loc[i] = l_info
+    return df
