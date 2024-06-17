@@ -1967,7 +1967,7 @@ def make_CV_train_test_Orphan(df,nb_folds,path_mkdir):
     print("Train/test datasets prepared.")
     return train_arr, test_arr
 
-def make_CV_train_test(load_data,S,save_data):
+def make_CV_train_test(load_data,S,save_data,nb_folds=5):
     """
     Loads the interaction data from a CSV file, preprocesses the data to generate numerical indices for unique 
     smiles (molecules) and fasta (proteins), and splits the data into cross-validation training and testing datasets 
@@ -1980,6 +1980,8 @@ def make_CV_train_test(load_data,S,save_data):
     :type S: str
     :param save_data: Path to the directory where the output train and test sets will be saved.
     :type save_data: str
+    :param nb_folds: Number of folds for cross-validation, defaults to 5.
+    :type nb_folds: int, optional
     :return: A tuple containing lists of DataFrames representing the training and testing datasets for each fold.
 
     Note:
@@ -2031,20 +2033,20 @@ def make_CV_train_test(load_data,S,save_data):
     if S == "full":
         if not os.path.exists(save_data+"/full_data"):
             os.makedirs(save_data+"/full_data")
-        all_train_interactions_arr, all_test_interactions_arr = make_CV_train_test_full(df,5,save_data+"/full_data")
+        all_train_interactions_arr, all_test_interactions_arr = make_CV_train_test_full(df,nb_folds,save_data+"/full_data")
     elif S == "unseen_drug":
         if not os.path.exists(save_data+"/unseen_drug"):
             os.makedirs(save_data+"/unseen_drug")
-        all_train_interactions_arr, all_test_interactions_arr = make_CV_train_test_unseen_drug(df,5,save_data+"/unseen_drug")
+        all_train_interactions_arr, all_test_interactions_arr = make_CV_train_test_unseen_drug(df,nb_folds,save_data+"/unseen_drug")
         
     elif S == "unseen_target":
         if not os.path.exists(save_data+"/unseen_target"):
             os.makedirs(save_data+"/unseen_target")
-        all_train_interactions_arr, all_test_interactions_arr = make_CV_train_test_unseen_target(df,5,save_data+"/unseen_target")
+        all_train_interactions_arr, all_test_interactions_arr = make_CV_train_test_unseen_target(df,nb_folds,save_data+"/unseen_target")
     elif S == "Orphan":
         if not os.path.exists(save_data+"/Orphan"):
             os.makedirs(save_data+"/Orphan")
-        all_train_interactions_arr, all_test_interactions_arr = make_CV_train_test(df,5,save_data+"Orphan")    
+        all_train_interactions_arr, all_test_interactions_arr = make_CV_train_test_Orphan(df,nb_folds,save_data+"Orphan")    
     print("Train datasets prepared.")
     return all_train_interactions_arr, all_test_interactions_arr
 
