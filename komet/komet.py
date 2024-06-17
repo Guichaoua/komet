@@ -2306,3 +2306,135 @@ def process_LCIdb(name_file, data_dir = "./", max_length_fasta = 1000, bioactivi
     df.to_csv(data_dir+"LCIdb.csv", index = False)
 
     return df
+
+
+def MT_komet(name_data_set,lambda_list,mM,dM):
+    """
+    Trains and tests a multitask learning model using the Komet framework on a specified dataset. The function 
+    uses protein and molecule kernels, computes features, and evaluates the model's performance.
+
+    :param name_data_set: Name of the dataset directory within the data directory.
+    :type name_data_set: str
+    :param lambda_list: List of regularization parameters to use for training.
+    :type lambda_list: list[float]
+    :param mM: Number of molecules to use for the Nystrom approximation.
+    :type mM: int
+    :param dM: Final dimension of features for molecules.
+    :type dM: int
+    :return: DataFrame with the evaluation metrics for each protein.
+    :rtype: pandas.DataFrame
+
+    Note:
+    This function expects precomputed protein kernels and dictionaries mapping protein sequences to indices. 
+    It uses Morgan fingerprints for molecule features and applies Nystrom approximation to the molecule kernel. 
+    The protein features are computed using SVD. The function trains the model using an SVM and evaluates it using 
+    Platt scaling for probability estimation.
+    """
+    data_dir = './data/'
+    dataset_dir = data_dir + name_data_set
+
+    # Load Protein kernel and dictionary of index
+    dict_ind2fasta_all = pickle.load(open(data_dir + "dict_ind2fasta_all.data", 'rb'))
+    dict_fasta2ind_all = {fasta:ind for ind,fasta in dict_ind2fasta_all.items()}
+    with open(data_dir + "dict_ind2fasta_all_K_prot.data", 'rb') as f:
+        KP_all = pickle.load(f)
+    KP_all.shape, type(KP_all)
+
+    with open(dataset_dir +"/train_arr.pkl","rb") as f:
+        arr_train = pickle.load(f)
+    with open(dataset_dir +"/test_arr.pkl","rb") as f:
+        arr_test = pickle.load(f)
+    
+    full = arr_train[0]
+       
+    #### MOLECULE####
+    list_smiles = full[['SMILES']].drop_duplicates().values.flatten()
+    nM = len(list_smiles)
+    # add indsmiles in train, val, test
+    dict_smiles2ind = {list_smiles[i]:i for i in range(nM)}
+    # molecule kernel_first step : compute Morgan FP for each smiles of all the dataset
+    MorganFP = Morgan_FP(list_smiles)
+
+    # In case there are less molecules than the number of molecules to compute the Nystrom approximation
+    mM = min(mM,nM) # number of molecule to compute nystrom
+    dM = min(dM,nM) # final dimension of features for molecules
+
+    # compute the Nystrom approximation of the mol kernel and the features of the Kronecker kernel (features normalized and calculated on all mol contained in the dataset (train/val/test))
+    X_cn = Nystrom_X_cn(mM,dM,nM,MorganFP)
+    #print("mol features shape",X_cn.shape)
+
+    #### PROTEIN####
+    # Index of the protein in the dataset
+    fasta = full[['Target Sequence']].drop_duplicates().values.flatten() # fasta sequence on the dataset, in the same order as the dataset
+    I_fasta = [int(dict_fasta2ind_all[fasta[i]]) for i in range(len(fasta))] # index of fasta in the precomputed dict and protein kernel, in the same order as the dataset
+    KP = KP_all[I_fasta,:][:,I_fasta]
+    KP = torch.tensor(KP, dtype=mytype).to(device)
+    print("kernel prot shape",KP.shape)
+
+    # computation of feature for protein (no nystrom, just SVD)
+    rP = KP.shape[0]#min(KP.shape[0],500)
+    U, Lambda, VT = torch.svd(KP)
+    Y = U[:,:rP] @ torch.diag(torch.sqrt(Lambda[:rP]))
+
+    # nomramlisation of the features
+    Y_c = Y - Y.mean(axis = 0)
+    Y_cn = Y_c / torch.norm(Y_c,dim = 1)[:,None]
+    print("protein features shape",Y.shape)
+
+    # creation df vide avec colums columns=['fasta','nb_test','au_PR','au_Roc','acc'])
+    df = pd.DataFrame(columns=['Target','family','nb_test_1','nb_test_0','au_PR','au_Roc','acc'])
+
+    try : 
+        df_family = pd.read_csv(data_dir+"fasta_uniprot_family.csv")
+    except:
+        print("No family file")
+
+    for i in range(len(fasta)):
+    #for i in range(debut,fin):
+        l_info = []
+        #l_info.append(fasta[i])
+        l_info+= [df_family[df_family['fasta']==fasta[i]]['Target'].values[0],df_family[df_family['fasta']==fasta[i]]['family'].values[0]]
+
+        #df_test : only DTI known in full
+        df_test = full[full['Target Sequence'] == fasta[i]]
+        l_info.append(len(df_test[df_test['Label']==1]))
+        l_info.append(len(df_test[df_test['Label']==0]))
+
+        #df_train: protein tested is orphan in full
+        df_train = full[full['Target Sequence'] != fasta[i]]
+
+        # we add indices in df_test and df_train
+        df_test['indfasta'] = i
+        df_train['indfasta'] = df_train['Target Sequence'].apply(lambda x: np.where(fasta==x)[0][0])
+
+        df_train['indsmiles'] = df_train['SMILES'].apply(lambda x:dict_smiles2ind[x] )
+        df_test['indsmiles'] = df_test['SMILES'].apply(lambda x: dict_smiles2ind[x])
+
+        # Train
+        I, J, y = load_datas(df_train)
+        n = len(I)
+        #print("len(train)",n)
+
+        # Test
+        I_test, J_test, y_test = load_datas(df_test)
+        n_test = len(I_test)
+        #print("len(test)",n_test)
+
+        #### TRAINING ####
+        
+        for j,lamb in enumerate(lambda_list):
+                #print('lambda',lamb)
+                w_bfgs,b_bfgs,h = SVM_bfgs(X_cn,Y_cn,y,I,J,lamb,niter=50)
+                # we compute a probability using weights (Platt scaling)
+                s,t,h2 = compute_proba_Platt_Scalling(w_bfgs,X_cn,Y_cn,y,I,J,niter=20)
+                #### TEST ####
+                # we compute a probability using weights (Platt scaling)
+                m,y_pred, proba_pred = compute_proba(w_bfgs,b_bfgs,s,t,X_cn,Y_cn,I_test,J_test)
+                # we compute the results
+                acc1,au_Roc,au_PR,thred_optim,acc_best,cm,FP = results(y_test.cpu(),y_pred.cpu(),proba_pred.cpu())
+
+        l_info+=[au_PR,au_Roc,acc1]
+        # rajouter une ligne dans le dataframe
+        df.loc[i] = l_info
+    
+    return df
