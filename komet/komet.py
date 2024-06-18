@@ -2308,13 +2308,16 @@ def process_LCIdb(name_file, data_dir = "./", max_length_fasta = 1000, bioactivi
     return df
 
 
-def MT_komet(name_data_set,lambda_list,mM,dM):
+def MT_komet(data_set,lambda_list,mM,dM):
     """
-    Trains and tests a multitask learning model using the Komet framework on a specified dataset. The function 
-    uses protein and molecule kernels, computes features, and evaluates the model's performance.
-
-    :param name_data_set: Name of the dataset directory within the data directory.
-    :type name_data_set: str
+    To compair a single-task NN SVM approach to the multi-task Komet algorithm in several settings. 
+    For each protein in LCIdb considered in turn as the query protein, we performed the following experiment: a test set was built, comprising all known positive DTIs 
+    involving the query protein in LCIdb and their balanced negative DTIs. A corresponding training set is built: For Komet, it consists of all DTIs remaining in LCIdb after removal of DTIs 
+    that are in the test set, so that the query protein is orphan. The AUPR is calculated on the test set. 
+    The process is repeated for each protein in LCIdb, and the average AUPR is calculated.
+    
+    :param data_set: Dataframe containing the dataset (train) with columns 'SMILES', 'Target Sequence', and 'Label'.
+    :type data_set: pandas.DataFrame
     :param lambda_list: List of regularization parameters to use for training.
     :type lambda_list: list[float]
     :param mM: Number of molecules to use for the Nystrom approximation.
@@ -2325,13 +2328,9 @@ def MT_komet(name_data_set,lambda_list,mM,dM):
     :rtype: pandas.DataFrame
 
     Note:
-    This function expects precomputed protein kernels and dictionaries mapping protein sequences to indices. 
-    It uses Morgan fingerprints for molecule features and applies Nystrom approximation to the molecule kernel. 
-    The protein features are computed using SVD. The function trains the model using an SVM and evaluates it using 
-    Platt scaling for probability estimation.
+    See section 7 of Supporting Information.
     """
     data_dir = './data/'
-    dataset_dir = data_dir + name_data_set
 
     # Load Protein kernel and dictionary of index
     dict_ind2fasta_all = pickle.load(open(data_dir + "dict_ind2fasta_all.data", 'rb'))
@@ -2339,13 +2338,8 @@ def MT_komet(name_data_set,lambda_list,mM,dM):
     with open(data_dir + "dict_ind2fasta_all_K_prot.data", 'rb') as f:
         KP_all = pickle.load(f)
     KP_all.shape, type(KP_all)
-
-    with open(dataset_dir +"/train_arr.pkl","rb") as f:
-        arr_train = pickle.load(f)
-    with open(dataset_dir +"/test_arr.pkl","rb") as f:
-        arr_test = pickle.load(f)
     
-    full = arr_train[0]
+    full = data_set
        
     #### MOLECULE####
     list_smiles = full[['SMILES']].drop_duplicates().values.flatten()
@@ -2442,13 +2436,15 @@ def MT_komet(name_data_set,lambda_list,mM,dM):
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, roc_curve, auc, average_precision_score
 
-def ST_SVM(name_data_set,mM,dM,lbda):
+def NN_ST_SVM(data_set,mM,dM,lbda):
     """
-    Trains and tests a single-task SVM model on a specified dataset using molecular and protein features.
-    The function uses protein and molecule kernels, computes features, and evaluates the model's performance.
+    Trains and tests a Neirest Neighbour, single-task SVM model.
+    For each protein, we performed the following experiment: a test set was built, comprising all known positive DTIs involving the query protein in LCIdb and their balanced negative DTIs. 
+    A corresponding training set is built: the training set consists of all positive and negative DTIs involving the nearest protein, according to the LAkernel similarity. 
+    We traina linear SVM using the same molecular features as Komet. The AUPR is calculated on the test set.
 
-    :param name_data_set: Name of the dataset directory within the data directory.
-    :type name_data_set: str
+    :param data_set: Dataframe containing the dataset (train) with columns 'SMILES', 'Target Sequence', and 'Label'.
+    :type data_set: pandas.DataFrame
     :param mM: Number of molecules to use for the Nystrom approximation.
     :type mM: int
     :param dM: Final dimension of features for molecules.
@@ -2459,13 +2455,10 @@ def ST_SVM(name_data_set,mM,dM,lbda):
     :rtype: pandas.DataFrame
 
     Note:
-    This function expects precomputed protein kernels and dictionaries mapping protein sequences to indices.
-    It uses Morgan fingerprints for molecule features and applies Nystrom approximation to the molecule kernel.
-    The protein features are computed using SVD. The function trains the SVM model and evaluates it on a test set.
+    Section 7 of Supporting Information of the paper.
     """
     
     data_dir = './data/'
-    dataset_dir = data_dir + name_data_set
 
     # Load Protein kernel and dictionary of index
     dict_ind2fasta_all = pickle.load(open(data_dir + "dict_ind2fasta_all.data", 'rb'))
@@ -2473,13 +2466,8 @@ def ST_SVM(name_data_set,mM,dM,lbda):
     with open(data_dir + "dict_ind2fasta_all_K_prot.data", 'rb') as f:
         KP_all = pickle.load(f)
     KP_all.shape, type(KP_all)
-
-    with open(dataset_dir +"/train_arr.pkl","rb") as f:
-        arr_train = pickle.load(f)
-    with open(dataset_dir +"/test_arr.pkl","rb") as f:
-        arr_test = pickle.load(f)
     
-    full= arr_train[0]
+    full= data_set
        
     #### MOLECULE####
     list_smiles = full[['SMILES']].drop_duplicates().values.flatten()
