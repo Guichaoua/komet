@@ -31,8 +31,10 @@ Komet - Kronecker Optimized Method for DTI Prediction
 
 Overview
 --------
+This library is designed for Drug-Target Interaction (DTI) prediction at large scales. 
+It provides tools for loading the large-sized LCIdb database or preprocessing an another database by changing parameters  and using Komets' Kronecker interaction module to predict drug-target interactions.
+This suite is particularly useful for researchers and developers working in drug discovery and molecular docking simulations.
 
-This library is designed for computational biology and cheminformatics, focusing on the prediction and analysis of molecular interactions. It provides tools for loading and processing molecular and protein data, computing molecular fingerprints, estimating interaction probabilities, and evaluating model performance. This suite is particularly useful for researchers and developers working in drug discovery and molecular docking simulations.
 
 Citation
 --------
