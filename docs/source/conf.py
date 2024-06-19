@@ -53,8 +53,8 @@ exclude_patterns = []
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
-#html_logo = "_static/komet-logo-small.png"
-html_logo = "_static/figure_TOC.pdf"
+html_logo = "_static/komet-logo-small.png"
+#html_logo = "_static/figure_TOC.pdf"
 html_favicon = "_static/favicon.png"
 
 # Add any paths that contain custom static files (such as style sheets) here,
