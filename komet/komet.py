@@ -2934,7 +2934,7 @@ def predict_protein_profile(train,fasta_protein,mM = 3000,dM = 1000,lamb = 1e-6)
     df_test = pd.DataFrame()
     df_test['SMILES'] = list_smiles
     df_test['Target Sequence'] = fasta_protein
-    df_test['Label'] = full.apply(lambda x:  x['Label'] if (x['SMILES'] == smiles_drug) & (x['Target Sequence'] in fasta) else -1 ,axis = 1)
+    df_test['Label'] = full.apply(lambda x:  x['Label'] if (x['SMILES'] in list_smiles) & (x['Target Sequence'] == fasta_protein) else -1 ,axis = 1)
 
     pred = np.zeros((len(list_smiles), len(train)))
 
