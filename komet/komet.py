@@ -2906,14 +2906,14 @@ def predict_protein_profile(train,fasta_protein,mM = 3000,dM = 1000,lamb = 1e-6)
     fasta = full[['Target Sequence']].drop_duplicates().values.flatten() # fasta sequence on the dataset, in the same order as the dataset
 
     if fasta_protein not in fasta:
-        print("The protein is not in the dataset")
+        print("The protein is not in the training dataset")
         # add this protein in fasta
         fasta = np.append(fasta,fasta_protein)
 
     try : 
         I_fasta = [int(dict_fasta2ind_all[fasta[i]]) for i in range(len(fasta))] # index of fasta in the precomputed dict and protein kernel, in the same order as the dataset
     except:
-        print("The protein is not in the dataset")
+        print("The protein is not in the kernel")
         return None
     
     KP = KP_all[I_fasta,:][:,I_fasta]
