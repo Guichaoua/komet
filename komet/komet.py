@@ -2719,8 +2719,7 @@ def NN_ST_SVM(data_set,mM,dM,lbda):
 def predict_drug_profile(train,smiles_drug,mM = 3000,dM = 1000,lamb = 1e-6): 
     """
     Predicts the interaction profile of a given drug (specified by its SMILES representation) against a set of 
-    proteins using a pre-trained model. The function uses protein and molecule kernels, computes features, 
-    and evaluates the model's predictions.
+    proteins by training Komet 5 times. Each time, Komet uses different training datasets (different choices of negatives) and different molecular landmarks. 
 
     :param train: List of training datasets, each represented as a DataFrame.
     :type train: list[pandas.DataFrame]
