@@ -2050,6 +2050,156 @@ def make_CV_train_test(load_data,S,save_data,nb_folds=5):
     print("Train datasets prepared.")
     return all_train_interactions_arr, all_test_interactions_arr
 
+def make_trains_full(load_data,save_data,nb_trains=5):
+    """
+    Loads the interaction data from a CSV file, preprocesses the data to generate numerical indices for unique 
+    smiles (molecules) and fasta (proteins), and make nb_train training datasets on full data by chosing different negative interactions each time.
+
+    :param load_data: Path to the input CSV file containing the interaction data : LCIdb_v2.csv (or after process_LCIdb with other thresholds) or Chembl.csv
+    :type load_data: str
+    :param save_data: Path to the directory where the output train sets will be saved.
+    :type save_data: str
+    :param nb_trains: Number of different trains, defaults to 5.
+    :type nb_trains: int, optional
+    :return: A tuple containing lists of DataFrames representing the training datasets for each fold.
+
+    Note:
+    The function preprocesses the input data to create unique numerical indices for each unique molecule and 
+    protein, which are then used to create a pivot table representing the interaction matrix. 
+    Choose different negative interactions each time.
+    """
+
+    df = pd.read_csv(load_data,low_memory=False)
+    try:
+        df.rename(columns={'standardized smiles':'smiles'}, inplace=True)
+    except:
+        pass
+    df_p = df[(df['score'] == 1)]
+    df2 = df_p
+
+    # give number to all smiles we keep and all fasta we keep (ie int +)
+    # make dict smiles2ind and dict ind2smiles
+    df_sm = df2[["smiles"]].drop_duplicates().reset_index()
+    #df_sm = df_p[["standardized smiles"]].drop_duplicates().reset_index()
+    df_sm.drop(columns=["index"],inplace=True)
+    dict_ind2smiles = df_sm.to_dict()["smiles"]
+    #dict_ind2smiles = df_sm.to_dict()["standardized smiles"]
+    print("nombre de smiles: ",len(dict_ind2smiles))
+    dict_smiles2ind = {v: k for k, v in dict_ind2smiles.items()}
+
+    df_prot = df2[["fasta"]].drop_duplicates().reset_index()
+    df_prot.drop(columns=["index"],inplace=True)
+    dict_ind2fasta = df_prot.to_dict()["fasta"]
+    print("nombre de fasta: ",len(dict_ind2fasta))
+    dict_fasta2ind = {v: k for k, v in dict_ind2fasta.items()}
+
+    # add this number to df
+    #df["indsmiles"] = df["standardized smiles"].map(dict_smiles2ind)
+    df["indsmiles"] = df["smiles"].map(dict_smiles2ind)
+    df["indfasta"] = df["fasta"].map(dict_fasta2ind)
+
+    # we drop when indsmiles is Nan
+    indsmiles_index_with_nan = df.index[df.loc[:,"indsmiles"].isnull()]
+    df = df.drop(indsmiles_index_with_nan,0)
+    # we drop when indfasta is Nan
+    indfasta_index_with_nan = df.index[df.loc[:,"indfasta"].isnull()]
+    df = df.drop(indfasta_index_with_nan,0)
+
+    intMat = df.pivot(index='indfasta', columns="indsmiles", values='score').to_numpy(dtype=np.float16)
+    print("matrice d'interactions: ",intMat.shape)
+
+    n_p,n_m = intMat.shape
+    Ip, Jm = np.where(intMat==1)
+    nb_positive_inter = int(len(Ip))
+    Inp, Jnm = np.where(intMat==0)
+    Inkp, Jnkm = np.where(np.isnan(intMat))
+    
+    all_train_interactions_arr = []
+    for i_train in range(nb_trains):
+        Mm, bin_edges = np.histogram(df["indfasta"], bins = range(intMat.shape[0]+1))
+        Mp, bin_edges = np.histogram(df["indsmiles"], bins = range(intMat.shape[1]+1))
+        train = np.zeros([1,3], dtype=int)
+
+        nb_prot = len(list(set(Ip))) # number of different prot in train
+        for i in range(nb_prot):
+
+            j = np.argmax(Mm) # choose protein with the maximum of interactions in the train
+
+            indice_P = Jm[np.where(Ip==j)[0]]  #np.array with index of interactions + in train
+            indice_N = [k for k in Jm if intMat[j][k]==0]
+            indice_NK = [k for k in Jm if np.isnan(intMat[j][k])] #np.array  with index of interactions not known
+
+            indice_freq_mol = np.where(Mp>1)[0]  #drug's index with more than 2 interactions +
+            indice_poss_mol = np.where(Mp == 1)[0]  #drug's index with 1 interaction +
+
+            indice_freq_one_prot = np.intersect1d(indice_N, indice_freq_mol)
+            indice_poss_one_prot = np.intersect1d(indice_N, indice_poss_mol)
+
+            nb_positive_interactions = len(indice_P)
+            nb_frequent_hitters_negative_interactions = len(indice_freq_one_prot)
+
+            indice_freq_one_prot = np.intersect1d(indice_N, indice_freq_mol)
+            indice_poss_one_prot = np.intersect1d(indice_N, indice_poss_mol)
+            indice_freq_one_prot_NK = np.intersect1d(indice_NK, indice_freq_mol)
+            indice_poss_one_prot_NK = np.intersect1d(indice_NK, indice_poss_mol)
+
+            if len(indice_P) <= len(indice_freq_one_prot):
+                # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+                indice_N_one_prot = np.random.choice(indice_freq_one_prot,
+                                                    len(indice_P), replace = False)
+            elif len(indice_P) <= len(indice_freq_one_prot) + len(indice_poss_one_prot):
+                # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+                nb_negative_interactions_remaining = len(indice_P) - len(indice_freq_one_prot)
+                indice_N_one_prot_poss = np.random.choice(indice_poss_one_prot,
+                                                        nb_negative_interactions_remaining, replace = False )
+                indice_N_one_prot = np.concatenate((indice_freq_one_prot,
+                                                indice_N_one_prot_poss))
+            elif len(indice_P) <= len(indice_freq_one_prot) + len(indice_poss_one_prot) + len(indice_freq_one_prot_NK):
+                # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+                nb_negative_interactions_remaining = len(indice_P) - len(indice_freq_one_prot) - len(indice_poss_one_prot)
+                indice_N_one_prot_poss = np.random.choice(indice_freq_one_prot_NK,
+                                                        nb_negative_interactions_remaining, replace = False )
+                indice_N_one_prot = np.concatenate((indice_freq_one_prot,
+                                                indice_poss_one_prot, indice_N_one_prot_poss))
+            else:
+                # we shoot at random nb_positive_interactions in drugs with a lot of interactions
+                nb_negative_interactions_remaining = len(indice_P) - len(indice_freq_one_prot) - len(indice_poss_one_prot) - len(indice_freq_one_prot_NK)
+                #print("nb_negative_interactions_remaining", nb_negative_interactions_remaining) # pas de solution...
+                #print(indice_poss_one_prot_NK.shape)
+                indice_N_one_prot_poss = np.random.choice(indice_poss_one_prot_NK,
+                                                        nb_negative_interactions_remaining, replace = False )
+                indice_N_one_prot = np.concatenate((indice_freq_one_prot,
+                                                indice_poss_one_prot, indice_freq_one_prot_NK, indice_N_one_prot_poss))
+
+            Mp[indice_N_one_prot.astype(int)]-=1
+
+            # this protein has been processed
+            Mm[j] = 0
+
+            indice = np.r_[indice_P,indice_N_one_prot].astype(int)
+            etiquette = [x if not np.isnan(x) else 0 for x in intMat[j][indice]]
+            A = np.stack((indice, etiquette), axis=-1)
+            B = np.c_[np.zeros(A.shape[0])+j,A].astype(int)
+            train = np.concatenate((train,B))
+
+        train = train[1:]
+        all_train_interactions_arr.append(train)
+        print("train", train.shape)
+
+    train_arr = []
+    for i in range(len(all_train_interactions_arr)):
+        df_train = pd.DataFrame(all_train_interactions_arr[i],columns=['indfasta','indsmiles','label'])
+        df_train_S = df_train.merge(df[["indfasta","fasta"]].drop_duplicates(),on="indfasta")
+        df_train_S = df_train_S.merge(df[["indsmiles","smiles"]].drop_duplicates(),on="indsmiles")
+        df_train_S = df_train_S[["smiles","fasta","label"]]
+        df_train_S.columns = ["SMILES","Target Sequence","Label"]
+        train_arr.append(df_train_S)
+
+    with open(save_data+"/train_arr.pkl","wb") as f:
+        pickle.dump(train_arr,f)
+
+    return train_arr
+
 def process_LCIdb(name_file, data_dir = "./", max_length_fasta = 1000, bioactivity_choice = "checkand1database",min_weight = 100, max_weight = 900,  interaction_plus = 1e-7, interaction_minus = 1e-4):
     """
     Processes data from a given ligand-chemical interaction database file and performs various data cleaning and transformation steps.
@@ -2315,7 +2465,7 @@ def MT_komet(data_set,lambda_list,mM,dM):
     involving the query protein in LCIdb and their balanced negative DTIs. A corresponding training set is built: For Komet, it consists of all DTIs remaining in LCIdb after removal of DTIs 
     that are in the test set, so that the query protein is orphan. The AUPR is calculated on the test set. 
     The process is repeated for each protein in LCIdb, and the average AUPR is calculated.
-    
+
     :param data_set: Dataframe containing the dataset (train) with columns 'SMILES', 'Target Sequence', and 'Label'.
     :type data_set: pandas.DataFrame
     :param lambda_list: List of regularization parameters to use for training.
@@ -2560,8 +2710,150 @@ def NN_ST_SVM(data_set,mM,dM,lbda):
         #aupr
         average_precision = average_precision_score(y_test,y_proba[:,1])
             
-        l_info.append(average_precision,auc_score,acc1)
+        l_info+=[average_precision,auc_score,acc1]
         l_info.append(lbda)
         # rajouter une ligne dans le dataframe
         df.loc[i] = l_info
     return df
+
+def predict_drug_profile(train,smiles_drug,mM = 3000,dM = 1000,lamb = 1e-6): 
+    """
+    Predicts the interaction profile of a given drug (specified by its SMILES representation) against a set of 
+    proteins using a pre-trained model. The function uses protein and molecule kernels, computes features, 
+    and evaluates the model's predictions.
+
+    :param train: List of training datasets, each represented as a DataFrame.
+    :type train: list[pandas.DataFrame]
+    :param smiles_drug: SMILES representation of the drug to predict interactions for.
+    :type smiles_drug: str
+    :param mM: Number of molecules to use for the Nystrom approximation, defaults to 3000.
+    :type mM: int, optional
+    :param dM: Final dimension of features for molecules, defaults to 1000.
+    :type dM: int, optional
+    :param lamb: Regularization parameter for the SVM model, defaults to 1e-6.
+    :type lamb: float, optional
+    :return: A tuple containing a DataFrame with the predicted interaction profile and a numpy array with 
+             the predicted probabilities for each protein.
+    :rtype: (pandas.DataFrame, numpy.ndarray)
+
+    Note:
+    This function expects precomputed protein kernels and dictionaries mapping protein sequences to indices.
+    It uses Morgan fingerprints for molecule features and applies Nystrom approximation to the molecule kernel.
+    The protein features are computed using SVD. The function trains an SVM model for each training dataset 
+    and predicts the interaction probabilities for the specified drug.
+    """   
+    data_dir = './data/'
+    # Load Protein kernel and dictionary of index
+    dict_ind2fasta_all = pickle.load(open(data_dir + "dict_ind2fasta_all.data", 'rb'))
+    dict_fasta2ind_all = {fasta:ind for ind,fasta in dict_ind2fasta_all.items()}
+    with open(data_dir + "dict_ind2fasta_all_K_prot.data", 'rb') as f:
+        KP_all = pickle.load(f)
+    
+    full = train[0]
+       
+    #### MOLECULE####
+    list_smiles = full[['SMILES']].drop_duplicates().values.flatten()
+
+    if smiles_drug not in list_smiles:
+        print("The drug is not in the dataset")
+        # add this drug in list_smiles
+        list_smiles = np.append(list_smiles,smiles_drug)
+    
+    nM = len(list_smiles)
+    dict_smiles2ind = {list_smiles[i]:i for i in range(nM)}
+    # molecule kernel_first step : compute Morgan FP for each smiles of all the dataset
+    MorganFP = Morgan_FP(list_smiles)
+
+    # In case there are less molecules than the number of molecules to compute the Nystrom approximation
+    mM = min(mM,nM) # number of molecule to compute nystrom
+    dM = min(dM,nM) # final dimension of features for molecules
+
+    #### PROTEIN####
+    # Index of the protein in the dataset
+    fasta = full[['Target Sequence']].drop_duplicates().values.flatten() # fasta sequence on the dataset, in the same order as the dataset
+    I_fasta = [int(dict_fasta2ind_all[fasta[i]]) for i in range(len(fasta))] # index of fasta in the precomputed dict and protein kernel, in the same order as the dataset
+    KP = KP_all[I_fasta,:][:,I_fasta]
+    KP = torch.tensor(KP, dtype=mytype).to(device)
+    print("kernel prot shape",KP.shape)
+
+    # computation of feature for protein (no nystrom, just SVD)
+    rP = KP.shape[0]#min(KP.shape[0],500)
+    U, Lambda, VT = torch.svd(KP)
+    Y = U[:,:rP] @ torch.diag(torch.sqrt(Lambda[:rP]))
+
+    # nomramlisation of the features
+    Y_c = Y - Y.mean(axis = 0)
+    Y_cn = Y_c / torch.norm(Y_c,dim = 1)[:,None]
+    print("protein features shape",Y.shape)
+
+    # we test the drug on each protein
+    df_test = pd.DataFrame(columns = ['SMILES','Target Sequence','Label','Proba_predicted_mean','Proba_predicted_std','Proba_predicted_min','Proba_predicted_max'])
+
+    df_test['Target Sequence'] = fasta
+    df_test['SMILES'] = smiles_drug
+    df_test['Label'] = full.apply(lambda x:  x['Label'] if (x['SMILES'] == smiles_drug) & (x['Target Sequence'] in fasta) else -1 ,axis = 1)
+
+    #pred = np.zeros((len(fasta), len(train)))
+    pred = np.zeros((len(fasta), len(train)))
+
+    for i in range(len(train)):
+    #for i in range(0):
+
+        # compute the Nystrom approximation of the mol kernel and the features of the Kronecker kernel (features normalized and calculated on all mol contained in the dataset (train/val/test))
+        X_cn = Nystrom_X_cn(mM,dM,nM,MorganFP)
+        #print("mol features shape",X_cn.shape)
+
+        #### TRAINING SET ####
+        df_train = train[i].copy()
+
+        # we add indices in df_test and df_train
+        df_test['indfasta'] = df_test['Target Sequence'].apply(lambda x: np.where(fasta==x)[0][0])
+        df_train['indfasta'] = df_train['Target Sequence'].apply(lambda x: np.where(fasta==x)[0][0])
+
+        df_train['indsmiles'] = df_train['SMILES'].apply(lambda x: dict_smiles2ind[x])
+        df_test['indsmiles'] = df_test['SMILES'].apply(lambda x: dict_smiles2ind[x])
+
+        # Train
+        I, J, y = load_datas(df_train)
+        n = len(I)
+        #print("len(train)",n)
+
+        # Test
+        I_test, J_test, y_test = load_datas(df_test)
+        n_test = len(I_test)
+        #print("len(test)",n_test)
+
+        #### TRAINING ####
+        # we train the model
+        w_bfgs,b_bfgs,h = SVM_bfgs(X_cn,Y_cn,y,I,J,lamb,niter=50)
+        # we compute a probability using weights (Platt scaling)
+        s,t,h2 = compute_proba_Platt_Scalling(w_bfgs,X_cn,Y_cn,y,I,J,niter=20)
+        #### TEST ####
+        # we compute a probability using weights (Platt scaling)
+        m,y_pred, proba_pred = compute_proba(w_bfgs,b_bfgs,s,t,X_cn,Y_cn,I_test,J_test)
+        # we compute the results
+        #acc1,au_Roc,au_PR,thred_optim,acc_best,cm,FP = results(y_test.cpu(),y_pred.cpu(),proba_pred.cpu())
+
+        pred[:,i] = proba_pred.cpu().numpy()
+
+    df_test['Proba_predicted_mean'] = np.mean(pred,axis = 1)
+    df_test['Proba_predicted_std'] = np.std(pred,axis = 1)
+    df_test['Proba_predicted_min'] = np.min(pred,axis = 1)
+    df_test['Proba_predicted_max'] = np.max(pred,axis = 1)
+
+    # sort the dataframe by the predicted probability
+    df_test = df_test.sort_values(by = 'Proba_predicted_mean',ascending = False)
+
+    #change Label on Label_known
+    df_test = df_test.rename(columns = {'Label':'Label_known'})
+
+    # add protein name and uniprot
+    try : 
+        df_family = pd.read_csv(data_dir+"fasta_uniprot_family.csv")
+    except:
+        print("No family file")
+    
+    df_test = df_test.merge(df_family,how = 'left', left_on = 'Target Sequence', right_on = 'fasta')
+    df_test = df_test[['Target','uniprot','family','Label_known','Proba_predicted_mean','Proba_predicted_std','Proba_predicted_min','Proba_predicted_max']]
+
+    return df_test,pred
