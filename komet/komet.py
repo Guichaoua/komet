@@ -2731,9 +2731,8 @@ def predict_drug_profile(train,smiles_drug,mM = 3000,dM = 1000,lamb = 1e-6):
     :type dM: int, optional
     :param lamb: Regularization parameter for the SVM model, defaults to 1e-6.
     :type lamb: float, optional
-    :return: A tuple containing a DataFrame with the predicted interaction profile and a numpy array with 
-             the predicted probabilities for each protein.
-    :rtype: (pandas.DataFrame, numpy.ndarray)
+    :return: A DataFrame with the predicted interaction profile for each protein.
+    :rtype: pandas.DataFrame
 
     Note:
     This function expects precomputed protein kernels and dictionaries mapping protein sequences to indices.
@@ -2855,4 +2854,139 @@ def predict_drug_profile(train,smiles_drug,mM = 3000,dM = 1000,lamb = 1e-6):
     df_test = df_test.merge(df_family,how = 'left', left_on = 'Target Sequence', right_on = 'fasta')
     df_test = df_test[['Target','uniprot','family','Label_known','Proba_predicted_mean','Proba_predicted_std','Proba_predicted_min','Proba_predicted_max']]
 
-    return df_test,pred
+    return df_test
+
+def predict_protein_profile(train,fasta_protein,mM = 3000,dM = 1000,lamb = 1e-6):  
+    """
+    Predicts the interaction profile of a given protein (specified by its FASTA sequence) against a set of 
+    drugs using the KOMET model. The function trains Komet 5 times on different training datasets and different
+    molecular landmarks to predict the interaction profile for the specified protein.
+
+    :param train: List of training datasets, each represented as a DataFrame.
+    :type train: list[pandas.DataFrame]
+    :param fasta_protein: FASTA sequence of the protein to predict interactions for.
+    :type fasta_protein: str
+    :param mM: Number of molecules to use for the Nystrom approximation, defaults to 3000.
+    :type mM: int, optional
+    :param dM: Final dimension of features for molecules, defaults to 1000.
+    :type dM: int, optional
+    :param lamb: Regularization parameter for the SVM model, defaults to 1e-6.
+    :type lamb: float, optional
+    :return: A DataFrame with the predicted interaction profile for each drug.
+    :rtype: pandas.DataFrame
+
+    Note:
+    This function expects precomputed protein kernels and dictionaries mapping protein sequences to indices.
+    It uses Morgan fingerprints for molecule features and applies Nystrom approximation to the molecule kernel.
+    The protein features are computed using SVD. The function trains an SVM model for each training dataset 
+    and predicts the interaction probabilities for the specified protein.
+    """
+      
+    data_dir = './data/'
+    # Load Protein kernel and dictionary of index
+    dict_ind2fasta_all = pickle.load(open(data_dir + "dict_ind2fasta_all.data", 'rb'))
+    dict_fasta2ind_all = {fasta:ind for ind,fasta in dict_ind2fasta_all.items()}
+    with open(data_dir + "dict_ind2fasta_all_K_prot.data", 'rb') as f:
+        KP_all = pickle.load(f)
+    
+    full = train[0]
+       
+    #### MOLECULE####
+    list_smiles = full[['SMILES']].drop_duplicates().values.flatten()    
+    nM = len(list_smiles)
+    dict_smiles2ind = {list_smiles[i]:i for i in range(nM)}
+    # molecule kernel_first step : compute Morgan FP for each smiles of all the dataset
+    MorganFP = Morgan_FP(list_smiles)
+    # In case there are less molecules than the number of molecules to compute the Nystrom approximation
+    mM = min(mM,nM) # number of molecule to compute nystrom
+    dM = min(dM,nM) # final dimension of features for molecules
+
+    #### PROTEIN####
+    # Index of the protein in the dataset
+    fasta = full[['Target Sequence']].drop_duplicates().values.flatten() # fasta sequence on the dataset, in the same order as the dataset
+
+    if fasta_protein not in fasta:
+        print("The protein is not in the dataset")
+        # add this protein in fasta
+        fasta = np.append(fasta,fasta_protein)
+
+    try : 
+        I_fasta = [int(dict_fasta2ind_all[fasta[i]]) for i in range(len(fasta))] # index of fasta in the precomputed dict and protein kernel, in the same order as the dataset
+    except:
+        print("The protein is not in the dataset")
+        return None
+    
+    KP = KP_all[I_fasta,:][:,I_fasta]
+    KP = torch.tensor(KP, dtype=mytype).to(device)
+    print("kernel prot shape",KP.shape)
+
+    # computation of feature for protein (no nystrom, just SVD)
+    rP = KP.shape[0]#min(KP.shape[0],500)
+    U, Lambda, VT = torch.svd(KP)
+    Y = U[:,:rP] @ torch.diag(torch.sqrt(Lambda[:rP]))
+
+    # nomramlisation of the features
+    Y_c = Y - Y.mean(axis = 0)
+    Y_cn = Y_c / torch.norm(Y_c,dim = 1)[:,None]
+    print("protein features shape",Y.shape)
+
+    # we test the protein on each drug
+    df_test = pd.DataFrame()
+    df_test['SMILES'] = list_smiles
+    df_test['Target Sequence'] = fasta_protein
+    df_test['Label'] = full.apply(lambda x:  x['Label'] if (x['SMILES'] == smiles_drug) & (x['Target Sequence'] in fasta) else -1 ,axis = 1)
+
+    pred = np.zeros((len(list_smiles), len(train)))
+
+    for i in range(len(train)):
+
+        # compute the Nystrom approximation of the mol kernel and the features of the Kronecker kernel (features normalized and calculated on all mol contained in the dataset (train/val/test))
+        X_cn = Nystrom_X_cn(mM,dM,nM,MorganFP)
+        #print("mol features shape",X_cn.shape)
+
+        #### TRAINING SET ####
+        df_train = train[i].copy()
+
+        # we add indices in df_test and df_train
+        df_test['indfasta'] = df_test['Target Sequence'].apply(lambda x: np.where(fasta==x)[0][0])
+        df_train['indfasta'] = df_train['Target Sequence'].apply(lambda x: np.where(fasta==x)[0][0])
+
+        df_train['indsmiles'] = df_train['SMILES'].apply(lambda x: dict_smiles2ind[x])
+        df_test['indsmiles'] = df_test['SMILES'].apply(lambda x: dict_smiles2ind[x])
+
+        # Train
+        I, J, y = load_datas(df_train)
+        n = len(I)
+        #print("len(train)",n)
+
+        # Test
+        I_test, J_test, y_test = load_datas(df_test)
+        n_test = len(I_test)
+        #print("len(test)",n_test)
+
+        #### TRAINING ####
+        # we train the model
+        w_bfgs,b_bfgs,h = SVM_bfgs(X_cn,Y_cn,y,I,J,lamb,niter=50)
+        # we compute a probability using weights (Platt scaling)
+        s,t,h2 = compute_proba_Platt_Scalling(w_bfgs,X_cn,Y_cn,y,I,J,niter=20)
+        #### TEST ####
+        # we compute a probability using weights (Platt scaling)
+        m,y_pred, proba_pred = compute_proba(w_bfgs,b_bfgs,s,t,X_cn,Y_cn,I_test,J_test)
+        # we compute the results
+        #acc1,au_Roc,au_PR,thred_optim,acc_best,cm,FP = results(y_test.cpu(),y_pred.cpu(),proba_pred.cpu())
+
+        pred[:,i] = proba_pred.cpu().numpy()
+
+    df_test['Proba_predicted_mean'] = np.mean(pred,axis = 1)
+    df_test['Proba_predicted_std'] = np.std(pred,axis = 1)
+    df_test['Proba_predicted_min'] = np.min(pred,axis = 1)
+    df_test['Proba_predicted_max'] = np.max(pred,axis = 1)
+
+    # sort the dataframe by the predicted probability
+    df_test = df_test.sort_values(by = 'Proba_predicted_mean',ascending = False)
+    #change Label on Label_known
+    df_test = df_test.rename(columns = {'Label':'Label_known'})
+    # remove indfasta and indsmiles, and Target sequence
+    df_test = df_test.drop(columns = ['indfasta','indsmiles','Target Sequence'])
+
+    return df_test
