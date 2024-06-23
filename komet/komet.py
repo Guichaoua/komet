@@ -2578,7 +2578,6 @@ def MT_komet(data_set,lambda_list,mM,dM):
                 acc1,au_Roc,au_PR,thred_optim,acc_best,cm,FP = results(y_test.cpu(),y_pred.cpu(),proba_pred.cpu())
 
         l_info+=[au_PR,au_Roc,acc1]
-        # rajouter une ligne dans le dataframe
         df.loc[i] = l_info
     
     return df
@@ -2907,8 +2906,11 @@ def predict_protein_profile(train,fasta_protein,mM = 3000,dM = 1000,lamb = 1e-6)
 
     if fasta_protein not in fasta:
         print("The protein is not in the training dataset")
+        present = False
         # add this protein in fasta
         fasta = np.append(fasta,fasta_protein)
+    else:
+        present = True
 
     try : 
         I_fasta = [int(dict_fasta2ind_all[fasta[i]]) for i in range(len(fasta))] # index of fasta in the precomputed dict and protein kernel, in the same order as the dataset
@@ -2934,7 +2936,15 @@ def predict_protein_profile(train,fasta_protein,mM = 3000,dM = 1000,lamb = 1e-6)
     df_test = pd.DataFrame()
     df_test['SMILES'] = list_smiles
     df_test['Target Sequence'] = fasta_protein
-    df_test['Label'] = full.apply(lambda x:  x['Label'] if (x['SMILES'] in list_smiles) & (x['Target Sequence'] == fasta_protein) else -1 ,axis = 1)
+    if present:
+        # on merge pour récupérer Label
+        df_test = df_test.merge(full[['SMILES','Target Sequence','Label']],on = ['SMILES','Target Sequence'],how = 'left')
+        # on remplace les valeurs manquantes par -1
+        df_test['Label'] = df_test['Label'].fillna(-1)
+    else:
+        df_test['Label'] = -1
+
+    #df_test['Label'] = full.apply(lambda x:  x['Label'] if (x['SMILES'] in list_smiles) & (x['Target Sequence'] == fasta_protein) else -1 ,axis = 1)
 
     pred = np.zeros((len(list_smiles), len(train)))
 
@@ -2968,7 +2978,6 @@ def predict_protein_profile(train,fasta_protein,mM = 3000,dM = 1000,lamb = 1e-6)
         # we train the model
         w_bfgs,b_bfgs,h = SVM_bfgs(X_cn,Y_cn,y,I,J,lamb,niter=50)
         # we compute a probability using weights (Platt scaling)
-        s,t,h2 = compute_proba_Platt_Scalling(w_bfgs,X_cn,Y_cn,y,I,J,niter=20)
         #### TEST ####
         # we compute a probability using weights (Platt scaling)
         m,y_pred, proba_pred = compute_proba(w_bfgs,b_bfgs,s,t,X_cn,Y_cn,I_test,J_test)
@@ -2988,5 +2997,6 @@ def predict_protein_profile(train,fasta_protein,mM = 3000,dM = 1000,lamb = 1e-6)
     df_test = df_test.rename(columns = {'Label':'Label_known'})
     # remove indfasta and indsmiles, and Target sequence
     df_test = df_test.drop(columns = ['indfasta','indsmiles','Target Sequence'])
+    df_test = df_test.reset_index()
 
     return df_test
