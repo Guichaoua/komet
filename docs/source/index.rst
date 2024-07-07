@@ -33,7 +33,7 @@ Overview
 --------
 This library is designed for Drug-Target Interaction (DTI) prediction at large scales. 
 It provides tools for loading the large-sized LCIdb database or preprocessing an another database by changing parameters  and using Komets' Kronecker interaction module to predict drug-target interactions.
-This suite is particularly useful for researchers and developers working in drug discovery and molecular docking simulations.
+This suite is particularly useful for researchers and developers working in drug discovery and molecular docking simulations. All datasets, including LCIdb, can be found at https://zenodo.org/records/10731712
 
 
 Citation
