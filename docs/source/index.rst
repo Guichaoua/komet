@@ -41,7 +41,7 @@ Citation
 
 If you use this library, please be sure to cite::
 
-@article{Komet2024,
+   @article{Komet2024,
    title={Drug–Target Interactions Prediction at Scale: The Komet Algorithm with the LCIdb Dataset},
    author={Gwenn Guichaoua, Philippe Pinel, Brice Hoffmann, Chloé-Agathe Azencott, Véronique Stoven},
    journal={Journal of Chemical Information and Modeling},
@@ -49,7 +49,7 @@ If you use this library, please be sure to cite::
    doi={10.1021/acs.jcim.4c00422},
    url={https://pubs.acs.org/doi/full/10.1021/acs.jcim.4c00422},
    abstract={Drug–target interactions (DTIs) prediction algorithms are used at various stages of the drug discovery process. In this context, specific problems such as deorphanization of a new therapeutic target or target identification of a drug candidate arising from phenotypic screens require large-scale predictions across the protein and molecule spaces. DTI prediction heavily relies on supervised learning algorithms that use known DTIs to learn associations between molecule and protein features, allowing for the prediction of new interactions based on learned patterns. The algorithms must be broadly applicable to enable reliable predictions, even in regions of the protein or molecule spaces where data may be scarce. In this paper, we address two key challenges to fulfill these goals: building large, high-quality training datasets and designing prediction methods that can scale, in order to be trained on such large datasets. First, we introduce LCIdb, a curated, large-sized dataset of DTIs, offering extensive coverage of both the molecule and druggable protein spaces. Notably, LCIdb contains a much higher number of molecules than publicly available benchmarks, expanding coverage of the molecule space. Second, we propose Komet (Kronecker Optimized METhod), a DTI prediction pipeline designed for scalability without compromising performance. Komet leverages a three-step framework, incorporating efficient computation choices tailored for large datasets and involving the Nyström approximation. Specifically, Komet employs a Kronecker interaction module for (molecule, protein) pairs, which efficiently captures determinants in DTIs, and whose structure allows for reduced computational complexity and quasi-Newton optimization, ensuring that the model can handle large training sets, without compromising on performance. Our method is implemented in open-source software, leveraging GPU parallel computation for efficiency. We demonstrate the interest of our pipeline on various datasets, showing that Komet displays superior scalability and prediction performance compared to state-of-the-art deep learning approaches. Additionally, we illustrate the generalization properties of Komet by showing its performance on an external dataset, and on the publicly available LH benchmark designed for scaffold hopping problems. Komet is available open source at https://komet.readthedocs.io and all datasets, including LCIdb, can be found at https://zenodo.org/records/10731712.}
-}
+   }
    
 Dependencies
 ------------
