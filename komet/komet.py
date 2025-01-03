@@ -5,6 +5,7 @@ import zipfile
 
 from rdkit import Chem
 from rdkit.Chem import AllChem
+from rdkit.Chem import rdFingerprintGenerator
 
 from sklearn.model_selection import GroupKFold,KFold
 from sklearn.model_selection import train_test_split
@@ -84,17 +85,9 @@ def Morgan_FP(list_smiles):
     :return: A tensor containing the Morgan fingerprints for the input SMILES strings.
     :rtype: torch.Tensor
     """
-    ms = [Chem.MolFromSmiles(sm) for sm in list_smiles]
-    nM = len(ms)
-    MorganFP = np.zeros((nM, 1024))
-    for i in range(nM):
-        # Generate Morgan fingerprint of the molecule
-        fp = AllChem.GetMorganFingerprintAsBitVect(ms[i], 2, nBits=1024)
-        # Convert the fingerprint to a numpy array
-        arr = np.zeros((1,))
-        AllChem.DataStructs.ConvertToNumpyArray(fp, arr)
-        MorganFP[i, :] = arr
-    MorganFP = MorganFP.astype(int)
+    fmgen = rdFingerprintGenerator.GetMorganGenerator(radius=2,fpSize=1024)
+    MorganFP = [fmgen.GetFingerprintAsNumPy(Chem.MolFromSmiles(sm)) for sm in list_smiles]
+    MorganFP = np.array(MorganFP)
     MorganFP = torch.tensor(MorganFP, dtype=mytype).to(device)
     return MorganFP
 
