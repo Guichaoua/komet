@@ -91,7 +91,7 @@ def Morgan_FP(list_smiles):
     MorganFP = torch.tensor(MorganFP, dtype=mytype).to(device)
     return MorganFP
 
-def Nystrom_X_cn(mM,rM,nM,MorganFP):
+def Nystrom_X_cn(mM,rM,nM,MorganFP,n_max=0):
     """
     Compute the Nystrom approximation of the centered normalized feature matrix.
 
@@ -103,6 +103,8 @@ def Nystrom_X_cn(mM,rM,nM,MorganFP):
     :type nM: int
     :param MorganFP: Matrix of Morgan fingerprints of shape (nM, fingerprint_length).
     :type MorganFP: numpy.ndarray
+    :param n_max: Maximum number of molecules to consider for the approximation, defaults to nM.
+    :type n_max: int, optional
     :return: The centered normalized feature matrix.
     :rtype: torch.Tensor
     :notes: This function computes the Nystrom approximation of the feature matrix using the given
@@ -113,7 +115,9 @@ def Nystrom_X_cn(mM,rM,nM,MorganFP):
 
             The input MorganFP should be a numpy array with shape (nM, fingerprint_length).
     """
-    S = np.random.permutation(nM)[:mM]
+    if n_max == 0:
+        n_max = nM
+    S = np.random.permutation(n_max)[:mM]
     S = np.sort(S)
     K = ( MorganFP[S,:] @ MorganFP.T ) / ( 1024 - (1-MorganFP[S,:]) @ (1-MorganFP.T) )
     print("mol kernel shape",K.shape)
