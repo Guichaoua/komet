@@ -126,7 +126,7 @@ def Nystrom_X_cn(mM,rM,nM,MorganFP,n_max=0):
     epsi = 1e-8  # be careful when we divide by Lambda near 0
     X = K.T @ U[:,:rM] @ torch.diag(1./torch.sqrt(epsi + Lambda[:rM]))
     # nomramlisation of the features
-    X_c = X - X.mean(axis = 0)
+    X_c = X - X[:n_max,:].mean(axis = 0)
     X_cn = X_c / torch.norm(X_c,dim = 1)[:,None]
     return X_cn
 
