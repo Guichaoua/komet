@@ -141,6 +141,26 @@ Example Usage
    # Load your dataset
    df = komet.process_LCIdb('Consensus_CompoundBioactivity_Dataset_v1.1.csv', 'data', 1000, 'checkand1database', 0, 10000, 1, 0)
 
+
+Additional Protein Kernels
+--------------------------
+
+To extend the model to new proteins not present in the original LCIdb kernel matrix, you can compute pairwise protein kernels directly using the Local Alignment Kernel (`LAkernel_eval`). The implementation is available in `komet/LAkernel/`.
+
+.. code-block:: python
+
+   import ctypes
+   from komet.LAkernel import LAkernel_eval
+
+   score = LAkernel_eval("MQDRVKRPMNAFIVWSRDQRRKMALEN", "MRRVKRPMNAFIVWSRDQRRKMALEN")
+
+This computes the similarity score between two protein sequences using the LAKernel used to precompute LCIdb.
+
+You can use this to construct kernel rows (or full matrices) for novel proteins in your dataset.
+
+Note: the compiled shared library (`LAkernel.so`) is required and must match your system architecture. See the GitHub instructions for building it if missing.
+
+
 Contributing
 ------------
 
